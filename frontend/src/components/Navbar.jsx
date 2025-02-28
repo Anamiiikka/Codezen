@@ -11,6 +11,11 @@ const Navbar = () => {
   const [toggle, setToggle] = useState(false);
   const [dropdown, setDropdown] = useState(false);
 
+  // Toggle dropdown on click
+  const handleDropdownToggle = () => {
+    setDropdown((prev) => !prev);
+  };
+
   return (
     <nav className="w-full flex py-6 justify-between items-center navbar">
       <img src={logo} alt="hoobank" className="w-[124px] h-[32px]" />
@@ -21,24 +26,31 @@ const Navbar = () => {
             key={nav.id}
             className={`relative font-poppins font-normal cursor-pointer text-[16px] ${
               active === nav.title ? "text-white" : "text-dimWhite"
-            } ${index === navLinks.length - 1 ? "mr-10" : "mr-10"}`} // Changed mr-0 to mr-10 for "Options"
-            onClick={() => setActive(nav.title)}
-            onMouseEnter={() => nav.id === "Options" && setDropdown(true)}
-            onMouseLeave={() => nav.id === "Options" && setDropdown(false)}
+            } ${index === navLinks.length - 1 ? "mr-10" : "mr-10"}`}
+            onClick={() => {
+              setActive(nav.title);
+              if (nav.id === "Options") handleDropdownToggle(); // Toggle dropdown on click
+            }}
           >
             {nav.id === "Options" ? (
               <>
                 <span>{nav.title}</span>
                 {dropdown && (
-                  <ul className="absolute top-full left-0 mt-2 bg-gray-800 p-2 rounded-lg shadow-lg">
-                    <li className="text-white px-4 py-2 hover:bg-gray-700 cursor-pointer">
-                      <Link to="/dashboard/stocks">Stocks</Link>
+                  <ul className="absolute top-full left-0 mt-2 bg-gray-800 p-4 rounded-lg shadow-lg w-[200px] z-10">
+                    <li className="text-white px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                      <Link to="/dashboard/stocks" onClick={() => setDropdown(false)}>
+                        Stocks
+                      </Link>
                     </li>
-                    <li className="text-white px-4 py-2 hover:bg-gray-700 cursor-pointer">
-                      <Link to="/dashboard/mutual-funds">Mutual Funds</Link>
+                    <li className="text-white px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                      <Link to="/dashboard/mutual-funds" onClick={() => setDropdown(false)}>
+                        Mutual Funds
+                      </Link>
                     </li>
-                    <li className="text-white px-4 py-2 hover:bg-gray-700 cursor-pointer">
-                      <Link to="/dashboard/crypto">Crypto</Link>
+                    <li className="text-white px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                      <Link to="/dashboard/crypto" onClick={() => setDropdown(false)}>
+                        Crypto
+                      </Link>
                     </li>
                   </ul>
                 )}
@@ -83,6 +95,7 @@ const Navbar = () => {
                 onClick={() => setActive(nav.title)}
               >
                 {nav.id === "Options" ? (
+                  // Simplified for mobile; could add a nested dropdown if desired
                   <span>{nav.title}</span>
                 ) : (
                   <Link to={nav.id === "home" ? "/" : `#${nav.id}`}>{nav.title}</Link>
@@ -90,11 +103,14 @@ const Navbar = () => {
               </li>
             ))}
             {isAuthenticated && (
-              <li
-                className="font-poppins font-medium cursor-pointer text-[16px] text-dimWhite mt-4" // Changed mb-4 to mt-4
-                onClick={() => logout({ returnTo: window.location.origin })}
-              >
-                Logout
+              <li className="mt-4">
+                <button
+                  type="button"
+                  className="py-4 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
+                  onClick={() => logout({ returnTo: window.location.origin })}
+                >
+                  Logout
+                </button>
               </li>
             )}
           </ul>
