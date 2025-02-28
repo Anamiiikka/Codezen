@@ -73,13 +73,12 @@ const Business = () => {
         variants={textVariants}
       >
         <h2 className={styles.heading2}>
-          You do the business, <br className="sm:block hidden" /> we’ll handle
-          the money.
+          One flip changes everything.   <br className="sm:block hidden" /> Will you take the shot, or 
+          <br className="sm:block hidden" /> let the game play you?
         </h2>
         <p className={`${styles.paragraph} max-w-[470px] mt-5`}>
-          With the right credit card, you can improve your financial life by
-          building credit, earning rewards and saving money. But with hundreds
-          of credit cards on the market.
+        Personalized recommendations, live market analysis, and automated portfolio management with real-time risk assessment.
+
         </p>
 
         <Button styles="mt-10" />
