@@ -1,4 +1,3 @@
-// frontend/src/components/Dashboard/Portfolio.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import styles from "../../style";
@@ -28,7 +27,6 @@ const Portfolio = () => {
       setError(null);
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/get-portfolio/${user.sub}`);
-
         setPortfolioItems(response.data);
       } catch (err) {
         console.error("Error fetching portfolio:", err);
@@ -46,7 +44,7 @@ const Portfolio = () => {
       return;
     }
     try {
-      await axios.delete(`http://localhost:8000/api/remove-from-portfolio/${user.sub}/${itemId}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/remove-from-portfolio/${user.sub}/${itemId}`);
       setPortfolioItems(portfolioItems.filter((item) => item.item_id !== itemId));
       alert("Item removed successfully!");
     } catch (err) {
@@ -89,7 +87,7 @@ const Portfolio = () => {
       let analysis = "";
       for await (const chunk of chatCompletion) {
         analysis += chunk.choices[0]?.delta?.content || "";
-        setAiAnalysis(analysis); // Update UI progressively as stream arrives
+        setAiAnalysis(analysis);
       }
     } catch (err) {
       console.error("Error generating AI analysis:", err);
