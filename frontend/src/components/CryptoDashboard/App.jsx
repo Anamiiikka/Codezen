@@ -601,13 +601,13 @@ const CryptoDashboard = () => {
             disabled={loading || !selectedCoin}
             className={`mt-4 py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loading || !selectedCoin ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"}`}
           >
-            {loading ? "Generating..." : "AI Analysis"}
+            {loading ? "Generating..." : "AI DOST"}
           </button>
         </div>
 
         {aiAnalysis && (
           <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md text-white">
-            <h3 className="text-lg font-semibold mb-2">AI Analysis</h3>
+            <h3 className="text-lg font-semibold mb-2">AI Dost</h3>
             <p className="text-sm">{aiAnalysis}</p>
           </div>
         )}

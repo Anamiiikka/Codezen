@@ -127,7 +127,7 @@ const Portfolio = () => {
 
         {aiAnalysis && (
           <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md text-white">
-            <h3 className="text-lg font-semibold mb-2">AI Analysis</h3>
+            <h3 className="text-lg font-semibold mb-2">AI DOST</h3>
             <p className="text-sm">{aiAnalysis}</p>
           </div>
         )}

@@ -388,7 +388,7 @@ const MutualFundDashboard = () => {
             disabled={loading || !selectedFund}
             className={`mt-4 py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loading || !selectedFund ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"}`}
           >
-            {loading ? "Generating..." : "AI Analysis"}
+            {loading ? "Generating..." : "AI DOST"}
           </button>
         </div>
 
