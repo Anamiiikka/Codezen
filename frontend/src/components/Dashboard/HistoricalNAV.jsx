@@ -3,6 +3,8 @@ import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import styles from "../../style";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const HistoricalNAV = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -21,7 +23,7 @@ const HistoricalNAV = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/schemes?search=${searchTerm}`);
+        const response = await axios.get(`${API_URL}/api/schemes?search=${searchTerm}`);
         const schemesArray = Object.entries(response.data).map(([code, name]) => ({
           code,
           name,
@@ -50,7 +52,7 @@ const HistoricalNAV = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/historical-nav/${selectedScheme.code}`);
+        const response = await axios.get(`${API_URL}/api/historical-nav/${selectedScheme.code}`);
         setNavData(response.data);
       } catch (err) {
         console.error("Error fetching NAV data:", err);

@@ -21,16 +21,17 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 mf = Mftool()
 
-# MongoDB connection
+# MongoDB connection using environment variable
 MONGODB_URL = os.getenv("MONGODB_URL")
 client = MongoClient(MONGODB_URL)
 db = client["codezen"]  # Database name
 users_collection = db["users"]  # Collection name
 
-# Enable CORS with explicit configuration
+# Enable CORS with dynamic FRONTEND_URL from environment variable
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")  # Default to local dev if not set
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_URL],  # Use environment variable for allowed origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,7 +48,7 @@ async def add_cors_headers(request, call_next):
             status_code=500,
             content={"detail": str(e)}
         )
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL  # Dynamic origin
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
@@ -209,7 +210,7 @@ async def get_risk_volatility(scheme_code: str) -> Dict[str, Any]:
         logger.error(f"Error fetching risk volatility for {scheme_code}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# New endpoint to save or update user data
+# Endpoint to save or update user data
 @app.post("/api/save-user")
 async def save_user(user: Dict[str, Any]):
     try:
@@ -237,7 +238,7 @@ async def save_user(user: Dict[str, Any]):
         logger.error(f"Error saving user: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# New endpoint to get user data
+# Endpoint to get user data
 @app.get("/api/get-user/{user_id}")
 async def get_user(user_id: str):
     try:

@@ -4,6 +4,8 @@ import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import styles from "../../style";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const CompareNAVs = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -21,7 +23,7 @@ const CompareNAVs = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/schemes?search=${searchTerm}`);
+        const response = await axios.get(`${API_URL}/api/schemes?search=${searchTerm}`);
         const schemesArray = Object.entries(response.data).map(([code, name]) => ({
           code,
           name,
@@ -51,7 +53,7 @@ const CompareNAVs = () => {
       setError(null);
       try {
         const schemeCodes = selectedSchemes.map(scheme => scheme.code).join(",");
-        const response = await axios.get(`http://localhost:8000/api/compare-navs?scheme_codes=${schemeCodes}`);
+        const response = await axios.get(`${API_URL}/api/compare-navs?scheme_codes=${schemeCodes}`);
         console.log("Fetched NAV data:", response.data); // Debug log
         setNavData(response.data);
       } catch (err) {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import styles from "../../style";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const AverageAUM = () => {
   const [aumData, setAumData] = useState([]);
@@ -14,7 +15,7 @@ const AverageAUM = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get("http://localhost:8000/api/average-aum");
+        const response = await axios.get(`${API_URL}/api/average-aum?period=${selectedPeriod}`);
         setAumData(response.data);
         setCurrentPage(1); // Reset to first page on data fetch
       } catch (err) {
