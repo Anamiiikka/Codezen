@@ -50,6 +50,7 @@ async def add_cors_headers(request, call_next):
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
+# Main
 # Helper functions
 scheme_names = {v: k for k, v in mf.get_scheme_codes().items()}
 
