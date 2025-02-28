@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import Plotly from "react-plotly.js";
 import styles from "../../style";
 import { CoinContext } from "../../context/CoinContext";
-import Chatbot from "../Chatbot"; // Reuse the existing Chatbot
+import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
 
 // Custom Components
@@ -41,7 +41,7 @@ const RiskVolatility = ({ selectedCoin }) => {
 
         const annualizedVolatility = (returns.reduce((sum, r) => sum + r.returns, 0) / returns.length) * Math.sqrt(252);
         const annualizedReturn = (returns[returns.length - 1].nav / returns[0].nav) ** (252 / returns.length) - 1;
-        const sharpeRatio = (annualizedReturn - 0.02) / annualizedVolatility; // Assuming 2% risk-free rate
+        const sharpeRatio = (annualizedReturn - 0.02) / annualizedVolatility;
 
         setMetrics({ annualizedVolatility, annualizedReturn, sharpeRatio });
         setReturnsData(returns);
@@ -179,13 +179,11 @@ const CalculateReturns = ({ selectedCoin, historicalPrice }) => {
       return;
     }
 
-    // Calculate annualized return based on available historical data (up to 365 days)
-    const daysAvailable = historicalPrice.length - 1; // Number of days between first and last price
+    const daysAvailable = historicalPrice.length - 1;
     const startPrice = historicalPrice[0].nav;
     const endPrice = historicalPrice[historicalPrice.length - 1].nav;
-    const annualizedReturn = (endPrice / startPrice) ** (252 / daysAvailable) - 1; // Assuming 252 trading days/year
+    const annualizedReturn = (endPrice / startPrice) ** (252 / daysAvailable) - 1;
 
-    // Project returns over the input years
     const finalAmount = investmentAmount * ((1 + annualizedReturn) ** investmentYears);
     const growthPercent = ((finalAmount - investmentAmount) / investmentAmount) * 100;
 
@@ -262,6 +260,7 @@ const CryptoDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
+  const [priceRange, setPriceRange] = useState("365"); // Default to 1 year
 
   const groqClient = new Groq({
     apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -286,7 +285,7 @@ const CryptoDashboard = () => {
     setSuggestions(filtered);
   }, [searchTerm, allCoin]);
 
-  // Fetch coin details when selected
+  // Fetch coin details and historical price when selected or range changes
   useEffect(() => {
     const fetchCoinDetails = async () => {
       if (!selectedCoin) {
@@ -306,7 +305,7 @@ const CryptoDashboard = () => {
         setCoinDetails(detailsResponse.data);
 
         const priceResponse = await axios.get(
-          `https://api.coingecko.com/api/v3/coins/${selectedCoin.id}/market_chart?vs_currency=usd&days=365&interval=daily`,
+          `https://api.coingecko.com/api/v3/coins/${selectedCoin.id}/market_chart?vs_currency=usd&days=${priceRange}&interval=daily`,
           { headers: { "x-cg-demo-api-key": "CG-yDF1jqFeSyQ6SL3MbpeuPuMc" } }
         );
         const prices = priceResponse.data.prices.map(([timestamp, price]) => ({
@@ -330,7 +329,7 @@ const CryptoDashboard = () => {
       }
     };
     fetchCoinDetails();
-  }, [selectedCoin]);
+  }, [selectedCoin, priceRange]);
 
   const handleSearchChange = (e) => {
     e.preventDefault();
@@ -407,7 +406,12 @@ const CryptoDashboard = () => {
     }
   };
 
-  const filteredPriceData = historicalPrice.length > 30 ? historicalPrice.slice(-60).filter((_, i) => i % 2 === 0) : historicalPrice;
+  const handleRangeChange = (days) => {
+    setPriceRange(days);
+  };
+
+  const filteredPriceData = historicalPrice; // Use full data fetched for the selected range
+
   const plotData = heatmapData.length > 0 ? [{
     x: heatmapData.map(d => d.month),
     y: heatmapData.map(d => d.dayChange),
@@ -477,8 +481,36 @@ const CryptoDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <h3 className="text-white text-lg font-semibold mb-2">Historical Price (30+ Days)</h3>
+            <div className="bg-gray-800 rounded-lg p-4 shadow-md flex flex-col">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-white text-lg font-semibold">Historical Price</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRangeChange("30")}
+                    className={`py-1 px-2 rounded text-white ${priceRange === "30" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+                  >
+                    1M
+                  </button>
+                  <button
+                    onClick={() => handleRangeChange("90")}
+                    className={`py-1 px-2 rounded text-white ${priceRange === "90" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+                  >
+                    3M
+                  </button>
+                  <button
+                    onClick={() => handleRangeChange("180")}
+                    className={`py-1 px-2 rounded text-white ${priceRange === "180" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+                  >
+                    6M
+                  </button>
+                  <button
+                    onClick={() => handleRangeChange("365")}
+                    className={`py-1 px-2 rounded text-white ${priceRange === "365" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+                  >
+                    1Y
+                  </button>
+                </div>
+              </div>
               {filteredPriceData.length > 0 ? (
                 <LineChart width={350} height={200} data={filteredPriceData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
