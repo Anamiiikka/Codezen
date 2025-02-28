@@ -1,7 +1,7 @@
 // frontend/src/EducationHub/App.jsx
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import "./App.css";
+import styles from "../style"; // Import app-wide styles
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
@@ -120,165 +120,183 @@ const EducationHub = () => {
   };
 
   return (
-    <div className="app-container">
-      <motion.h1
-        className="heading"
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        Financial Education Hub
-      </motion.h1>
-
-      <motion.div
-        className="search-container"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.8 }}
-      >
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search financial videos..."
-          className="search-input"
-        />
-        <motion.button
-          onClick={fetchVideos}
-          className="search-button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+    <div className={`${styles.paddingX} ${styles.paddingY}`}>
+      <div className={`${styles.boxWidth} mx-auto`}>
+        <motion.h1
+          className={`${styles.heading2} text-center text-gradient`}
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
         >
-          Search
-        </motion.button>
-      </motion.div>
+          Financial Education Hub
+        </motion.h1>
 
-      {loading && <p className="loading text-white">Loading videos...</p>}
-      {error && <p className="error text-white">{error}</p>}
-
-      <motion.div
-        className="video-grid"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.8 }}
-      >
-        {videos.map((video, index) => (
-          <motion.div
-            key={index}
-            className="video-card"
+        <motion.div
+          className={`${styles.flexCenter} flex-col sm:flex-row gap-4 mb-8`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
+        >
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search financial videos..."
+            className="p-3 w-full sm:w-3/4 rounded bg-dimBlue text-white focus:outline-none font-poppins"
+          />
+          <motion.button
+            onClick={fetchVideos}
+            className="py-3 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
             whileHover={{ scale: 1.05 }}
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: index * 0.1, duration: 0.5 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <h3 className="video-title">{video.title}</h3>
-            <iframe
-              width="100%"
-              height="180"
-              src={`https://www.youtube.com/embed/${video.videoId}`}
-              frameBorder="0"
-              allowFullScreen
-              title={video.title}
-            />
-          </motion.div>
-        ))}
-      </motion.div>
+            Search
+          </motion.button>
+        </motion.div>
 
-      <motion.h2
-        className="section-heading blogs-heading"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-      >
-        Financial Blogs
-      </motion.h2>
+        {loading && <p className={`${styles.paragraph} text-center`}>Loading videos...</p>}
+        {error && <p className={`${styles.paragraph} text-center text-red-500`}>{error}</p>}
 
-      <motion.div
-        className="search-container"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.6, duration: 0.8 }}
-      >
-        <input
-          type="text"
-          value={blogQuery}
-          onChange={(e) => setBlogQuery(e.target.value)}
-          placeholder="Search financial blog topics..."
-          className="search-input"
-        />
-        <motion.button
-          onClick={handleBlogSearch}
-          className="search-button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.8 }}
         >
-          Search
-        </motion.button>
-      </motion.div>
-
-      {blogLoading && <p className="loading text-white">Loading blogs...</p>}
-      {blogError && <p className="error text-white">{blogError}</p>}
-
-      <motion.div
-        className="blog-grid"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.8, duration: 0.8 }}
-      >
-        {blogs.length > 0 ? (
-          blogs.map((blog, index) => (
+          {videos.map((video, index) => (
             <motion.div
               key={index}
-              className="blog-card"
+              className="bg-black-gradient p-4 rounded-[20px] feature-card"
               whileHover={{ scale: 1.05 }}
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.8 + index * 0.2, duration: 0.5 }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
             >
-              <h3 className="blog-title">{blog.title}</h3>
-              <p className="blog-description">{blog.description}</p>
-              <a href={blog.url} target="_blank" rel="noopener noreferrer" className="read-more-button">
+              <h3 className="font-poppins font-semibold text-white text-[18px] leading-[23.4px] mb-3">
+                {video.title}
+              </h3>
+              <iframe
+                width="100%"
+                height="180"
+                src={`https://www.youtube.com/embed/${video.videoId}`}
+                frameBorder="0"
+                allowFullScreen
+                title={video.title}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.h2
+          className={`${styles.heading2} text-center mb-8`}
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5, duration: 0.8 }}
+        >
+          Financial Blogs
+        </motion.h2>
+
+        <motion.div
+          className={`${styles.flexCenter} flex-col sm:flex-row gap-4 mb-8`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.6, duration: 0.8 }}
+        >
+          <input
+            type="text"
+            value={blogQuery}
+            onChange={(e) => setBlogQuery(e.target.value)}
+            placeholder="Search financial blog topics..."
+            className="p-3 w-full sm:w-3/4 rounded bg-dimBlue text-white focus:outline-none font-poppins"
+          />
+          <motion.button
+            onClick={handleBlogSearch}
+            className="py-3 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Search
+          </motion.button>
+        </motion.div>
+
+        {blogLoading && <p className={`${styles.paragraph} text-center`}>Loading blogs...</p>}
+        {blogError && <p className={`${styles.paragraph} text-center text-red-500`}>{blogError}</p>}
+
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8, duration: 0.8 }}
+        >
+          {blogs.length > 0 ? (
+            blogs.map((blog, index) => (
+              <motion.div
+                key={index}
+                className="bg-black-gradient p-4 rounded-[20px] feature-card"
+                whileHover={{ scale: 1.05 }}
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.8 + index * 0.2, duration: 0.5 }}
+              >
+                <h3 className="font-poppins font-semibold text-white text-[18px] leading-[23.4px] mb-2">
+                  {blog.title}
+                </h3>
+                <p className={`${styles.paragraph} mb-3`}>{blog.description}</p>
+                <a
+                  href={blog.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 px-4 font-poppins font-medium text-[16px] text-primary bg-blue-gradient rounded-[10px] inline-block"
+                >
+                  Read More
+                </a>
+              </motion.div>
+            ))
+          ) : (
+            !blogLoading && <p className={`${styles.paragraph} text-center`}>No blogs found.</p>
+          )}
+        </motion.div>
+
+        <motion.h2
+          className={`${styles.heading2} text-center mb-8`}
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.2, duration: 0.8 }}
+        >
+          Trending Financial News
+        </motion.h2>
+
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.5, duration: 0.8 }}
+        >
+          {trendingNews.map((news, index) => (
+            <motion.div
+              key={index}
+              className="bg-black-gradient p-4 rounded-[20px] feature-card"
+              whileHover={{ scale: 1.05 }}
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 2.5 + index * 0.2, duration: 0.5 }}
+            >
+              <h3 className="font-poppins font-semibold text-white text-[18px] leading-[23.4px] mb-2">
+                {news.title}
+              </h3>
+              <p className={`${styles.paragraph} mb-3`}>{news.summary}</p>
+              <a
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2 px-4 font-poppins font-medium text-[16px] text-primary bg-blue-gradient rounded-[10px] inline-block"
+              >
                 Read More
               </a>
             </motion.div>
-          ))
-        ) : (
-          !blogLoading && <p className="text-white">No blogs found.</p>
-        )}
-      </motion.div>
-
-      <motion.h2
-        className="section-heading news-heading"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2.2, duration: 0.8 }}
-      >
-        Trending Financial News
-      </motion.h2>
-
-      <motion.div
-        className="news-grid"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2.5, duration: 0.8 }}
-      >
-        {trendingNews.map((news, index) => (
-          <motion.div
-            key={index}
-            className="news-card"
-            whileHover={{ scale: 1.05 }}
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 2.5 + index * 0.2, duration: 0.5 }}
-          >
-            <h3 className="news-title">{news.title}</h3>
-            <p className="news-summary">{news.summary}</p>
-            <a href={news.url} target="_blank" rel="noopener noreferrer" className="news-link">
-              Read More on Google
-            </a>
-          </motion.div>
-        ))}
-      </motion.div>
+          ))}
+        </motion.div>
+      </div>
     </div>
   );
 };
