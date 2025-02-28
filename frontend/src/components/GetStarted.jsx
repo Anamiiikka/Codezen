@@ -10,8 +10,8 @@ const GetStarted = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Send user data to backend
-      axios
-        .post("http://localhost:8000/api/save-user", user)
+      axios.post(`${import.meta.env.VITE_API_URL}/api/save-user`, user)
+
         .then((response) => {
           console.log("User saved:", response.data);
         })
