@@ -1,5 +1,5 @@
 import Navbar from "./Navbar";
-import Hero from "./hero";
+import Hero from "./Hero";
 import Stats from "./Stats";
 import Business from "./business";
 import Billing from "./billing";
