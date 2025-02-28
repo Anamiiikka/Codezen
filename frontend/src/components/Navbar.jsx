@@ -18,7 +18,9 @@ const Navbar = () => {
 
   return (
     <nav className="w-full flex py-6 justify-between items-center navbar">
-      <img src={logo} alt="hoobank" className="w-[124px] h-[32px]" />
+      <Link to="/">
+        <img src={logo} alt="hoobank" className="w-[124px] h-[32px]" />
+      </Link>
 
       <ul className="list-none sm:flex hidden justify-end items-center flex-1">
         {navLinks.map((nav, index) => (
@@ -56,7 +58,9 @@ const Navbar = () => {
                 )}
               </>
             ) : (
-              <Link to={nav.id === "home" ? "/" : `#${nav.id}`}>{nav.title}</Link>
+              <Link to={nav.id === "home" ? "/" : `/${nav.id}`}>
+                {nav.title}
+              </Link>
             )}
           </li>
         ))}
@@ -92,13 +96,38 @@ const Navbar = () => {
                 className={`font-poppins font-medium cursor-pointer text-[16px] ${
                   active === nav.title ? "text-white" : "text-dimWhite"
                 } ${index === navLinks.length - 1 ? "mb-4" : "mb-4"}`}
-                onClick={() => setActive(nav.title)}
+                onClick={() => {
+                  setActive(nav.title);
+                  if (nav.id === "Options") handleDropdownToggle(); // Toggle dropdown on click (optional for mobile)
+                }}
               >
                 {nav.id === "Options" ? (
-                  // Simplified for mobile; could add a nested dropdown if desired
-                  <span>{nav.title}</span>
+                  <>
+                    <span>{nav.title}</span>
+                    {dropdown && (
+                      <ul className="mt-2">
+                        <li className="text-white py-2">
+                          <Link to="/dashboard/stocks" onClick={() => setDropdown(false)}>
+                            Stocks
+                          </Link>
+                        </li>
+                        <li className="text-white py-2">
+                          <Link to="/dashboard/mutual-funds" onClick={() => setDropdown(false)}>
+                            Mutual Funds
+                          </Link>
+                        </li>
+                        <li className="text-white py-2">
+                          <Link to="/dashboard/crypto" onClick={() => setDropdown(false)}>
+                            Crypto
+                          </Link>
+                        </li>
+                      </ul>
+                    )}
+                  </>
                 ) : (
-                  <Link to={nav.id === "home" ? "/" : `#${nav.id}`}>{nav.title}</Link>
+                  <Link to={nav.id === "home" ? "/" : `/${nav.id}`}>
+                    {nav.title}
+                  </Link>
                 )}
               </li>
             ))}
