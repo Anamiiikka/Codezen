@@ -9,17 +9,14 @@ export const navLinks = [
     id: "features",
     title: "Features",
   },
+ 
   {
-    id: "product",
-    title: "Product",
+    id: "Options",
+    title: "Options",
   },
   {
     id: "education",  // Changed from "clients"
     title: "Education",
-  },
-  {
-    id: "Options",
-    title: "Options",
   },
 ];
 
@@ -27,23 +24,23 @@ export const features = [
   {
     id: "feature-1",
     icon: star,
-    title: "Rewards",
+    title: "Mutual Fund",
     content:
-      "The best credit cards offer some tantalizing combinations of promotions and prizes",
+      "Smart Investing Made Simple: Track, Analyze, and Grow Your Mutual Funds with Ease!",
   },
   {
     id: "feature-2",
     icon: shield,
-    title: "100% Secured",
+    title: "Cryptocurrency",
     content:
-      "We take proactive steps make sure your information and transactions are secure.",
+      "Real-Time Insights, Smarter Trades: Navigate the Crypto Market with Confidence!",
   },
   {
     id: "feature-3",
     icon: send,
-    title: "Balance Transfer",
+    title: "Portfolio Tracking",
     content:
-      "A balance transfer credit card can save you a lot of money in interest charges.",
+      "Stay Ahead of the Market: Track, Analyze, and Optimize Your Portfolio in One Place!",
   },
 ];
 
