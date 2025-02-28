@@ -137,19 +137,18 @@ async def get_average_aum(period: str = "July - September 2024") -> List[Dict[st
         logger.error(f"Error fetching AUM: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Updated Performance Heatmap Endpoint
 @app.get("/api/performance-heatmap/{scheme_code}")
 async def get_performance_heatmap(scheme_code: str) -> List[Dict[str, Any]]:
     try:
         nav_data = mf.get_scheme_historical_nav(scheme_code, as_Dataframe=True)
         if nav_data is not None and not nav_data.empty:
             nav_data = nav_data.reset_index().rename(columns={"index": "date"})
-            nav_data["date"] = pd.to_datetime(nav_data["date"], dayfirst=True)  # Fix date parsing
+            nav_data["date"] = pd.to_datetime(nav_data["date"], dayfirst=True)
             nav_data["nav"] = nav_data["nav"].astype(float)
-            nav_data["dayChange"] = nav_data["nav"].pct_change().fillna(0)  # Calculate daily change
+            nav_data["dayChange"] = nav_data["nav"].pct_change().fillna(0)
             nav_data["month"] = nav_data["date"].dt.month
             heatmap_data = nav_data.groupby("month")["dayChange"].mean().reset_index()
-            heatmap_data["dayChange"] = heatmap_data["dayChange"].replace([np.inf, -np.inf], None)  # Handle inf values
+            heatmap_data["dayChange"] = heatmap_data["dayChange"].replace([np.inf, -np.inf], None)
             heatmap_data["month"] = heatmap_data["month"].astype(str)
             return heatmap_data.to_dict(orient="records")
         return []
@@ -166,24 +165,22 @@ async def get_risk_volatility(scheme_code: str) -> Dict[str, Any]:
             nav_data["date"] = pd.to_datetime(nav_data["date"], dayfirst=True)
             nav_data["nav"] = pd.to_numeric(nav_data["nav"], errors="coerce")
             nav_data = nav_data.dropna(subset=["nav"])
-            nav_data["returns"] = nav_data["nav"] / nav_data["nav"].shift(1) - 1
+            nav_data["returns"] = nav_data["nav"].pct_change()
             nav_data = nav_data.dropna(subset=["returns"])
             annualized_volatility = nav_data["returns"].std() * np.sqrt(252)
             annualized_return = (nav_data["returns"].mean() + 1) ** 252 - 1
             risk_free_rate = 0.06
-            sharpe_ratio = (annualized_return - risk_free_rate) / annualized_volatility
+            sharpe_ratio = (annualized_return - risk_free_rate) / annualized_volatility if annualized_volatility > 0 else 0
             return {
-                "annualized_volatility": annualized_volatility,
-                "annualized_return": annualized_return,
-                "sharpe_ratio": sharpe_ratio,
-                "returns": nav_data[["date", "returns", "nav"]].to_dict(orient="records")
+                "annualized_volatility": float(annualized_volatility),
+                "annualized_return": float(annualized_return),
+                "sharpe_ratio": float(sharpe_ratio),
             }
         return {}
     except Exception as e:
         logger.error(f"Error fetching risk volatility: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# New Monte Carlo Prediction Endpoint
 @app.get("/api/monte-carlo-prediction/{scheme_code}")
 async def get_monte_carlo_prediction(scheme_code: str, num_simulations: int = 1000, days: int = 252) -> Dict[str, Any]:
     try:
@@ -199,9 +196,8 @@ async def get_monte_carlo_prediction(scheme_code: str, num_simulations: int = 10
         if len(nav_data["returns"]) < 2:
             return {"message": "Insufficient data for Monte Carlo simulation"}
 
-        mu = nav_data["returns"].mean()  # Daily mean return
-        sigma = nav_data["returns"].std()  # Daily volatility
-
+        mu = nav_data["returns"].mean()
+        sigma = nav_data["returns"].std()
         last_nav = float(nav_data["nav"].iloc[-1])
         simulations = np.zeros((num_simulations, days))
         simulations[:, 0] = last_nav
@@ -217,14 +213,71 @@ async def get_monte_carlo_prediction(scheme_code: str, num_simulations: int = 10
 
         return {
             "expected_nav": expected_nav,
-            "probability_positive_return": prob_positive * 100,  # As percentage
+            "probability_positive_return": prob_positive * 100,
             "lower_bound_5th_percentile": percentile_5,
             "upper_bound_95th_percentile": percentile_95,
             "last_nav": last_nav,
-            "simulations": simulations[-1].tolist()  # Last day's simulation values
         }
     except Exception as e:
         logger.error(f"Error in Monte Carlo prediction: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Updated Portfolio Summary Endpoint
+@app.get("/api/portfolio-summary/{user_id}")
+async def get_portfolio_summary(user_id: str) -> Dict[str, Any]:
+    try:
+        portfolio_items = list(portfolio_collection.find({"user_id": user_id}))
+        if not portfolio_items:
+            return {"items": [], "total_latest_nav": 0.0}
+
+        summary_items = []
+        total_latest_nav = 0.0
+        for item in portfolio_items:
+            if item["item_type"] == "mutual_fund":
+                nav_data = mf.get_scheme_historical_nav(item["item_id"], as_Dataframe=True)
+                monte_carlo = await get_monte_carlo_prediction(item["item_id"])
+                risk = await get_risk_volatility(item["item_id"])
+
+                if nav_data is not None and not nav_data.empty:
+                    nav_data = nav_data.reset_index().rename(columns={"index": "date"})
+                    nav_data["nav"] = pd.to_numeric(nav_data["nav"], errors="coerce")
+                    nav_data = nav_data.dropna(subset=["nav"])
+                    latest_nav = float(nav_data["nav"].iloc[-1])
+                    one_year_ago_idx = max(0, len(nav_data) - 252)
+                    one_year_ago_nav = float(nav_data["nav"].iloc[one_year_ago_idx])
+                    one_year_growth = ((latest_nav - one_year_ago_nav) / one_year_ago_nav * 100) if one_year_ago_nav > 0 else "N/A"
+                    total_latest_nav += latest_nav
+                else:
+                    latest_nav = "N/A"
+                    one_year_growth = "N/A"
+
+                summary_items.append({
+                    "name": item["name"],
+                    "type": item["item_type"],
+                    "latest_nav": latest_nav,
+                    "one_year_growth": one_year_growth,
+                    "monte_carlo": {
+                        "expected_nav": monte_carlo.get("expected_nav", "N/A"),
+                        "probability_positive": monte_carlo.get("probability_positive_return", "N/A"),
+                    } if monte_carlo else "N/A",
+                    "risk_volatility": {
+                        "volatility": risk.get("annualized_volatility", "N/A"),
+                        "sharpe_ratio": risk.get("sharpe_ratio", "N/A")
+                    } if risk else "N/A",
+                })
+            else:
+                summary_items.append({
+                    "name": item["name"],
+                    "type": item["item_type"],
+                    "latest_nav": "N/A",
+                    "one_year_growth": "N/A",
+                    "monte_carlo": "N/A",
+                    "risk_volatility": "N/A",
+                })
+
+        return {"items": summary_items, "total_latest_nav": total_latest_nav}
+    except Exception as e:
+        logger.error(f"Error fetching portfolio summary for {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Existing endpoints (unchanged)

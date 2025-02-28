@@ -7,10 +7,13 @@ import Groq from "groq-sdk";
 const Portfolio = () => {
   const { user, isAuthenticated, loginWithRedirect } = useAuth0();
   const [portfolioItems, setPortfolioItems] = useState([]);
+  const [portfolioSummary, setPortfolioSummary] = useState({ items: [], total_latest_nav: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
-  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [aiReport, setAiReport] = useState("");
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   const groqClient = new Groq({
     apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -26,8 +29,11 @@ const Portfolio = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/get-portfolio/${user.sub}`);
-        setPortfolioItems(response.data);
+        const itemsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/get-portfolio/${user.sub}`);
+        setPortfolioItems(itemsResponse.data);
+
+        const summaryResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/portfolio-summary/${user.sub}`);
+        setPortfolioSummary(summaryResponse.data);
       } catch (err) {
         console.error("Error fetching portfolio:", err);
         setError("Failed to fetch your portfolio. Please try again.");
@@ -46,6 +52,10 @@ const Portfolio = () => {
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/remove-from-portfolio/${user.sub}/${itemId}`);
       setPortfolioItems(portfolioItems.filter((item) => item.item_id !== itemId));
+      setPortfolioSummary((prev) => ({
+        ...prev,
+        items: prev.items.filter((item) => item.item_id !== itemId),
+      }));
       alert("Item removed successfully!");
     } catch (err) {
       console.error("Error removing item:", err);
@@ -59,21 +69,22 @@ const Portfolio = () => {
       return;
     }
 
-    setAnalysisLoading(true);
+    setLoadingAnalysis(true);
     setAiAnalysis("");
 
-    const portfolioSummary = portfolioItems.map((item) => ({
+    const portfolioSummarySimple = portfolioItems.map((item) => ({
       name: item.name,
       type: item.item_type,
       added_at: item.added_at,
     }));
 
     const prompt = `
-      I have a portfolio with the following items: ${JSON.stringify(portfolioSummary, null, 2)}.
-      Please provide a simple, friendly analysis for someone new to investing. Analyze the mix of mutual funds and cryptocurrencies, suggest how diversified it is, and offer basic insights on potential risks or benefits. Keep it conversational, short, and easy to understand!
+      I have a portfolio with these items: ${JSON.stringify(portfolioSummarySimple, null, 2)}.
+      Provide a simple, friendly analysis for a beginner investor. Analyze the mix of mutual funds and cryptocurrencies, suggest how diversified it is, and offer basic insights on potential risks or benefits. Keep it conversational, short, and easy to understand!
     `;
 
     try {
+      console.log("Starting AI DOST analysis with:", portfolioSummarySimple);
       const chatCompletion = await groqClient.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
         model: "llama-3.3-70b-versatile",
@@ -89,11 +100,79 @@ const Portfolio = () => {
         analysis += chunk.choices[0]?.delta?.content || "";
         setAiAnalysis(analysis);
       }
+      console.log("AI DOST analysis completed:", analysis);
     } catch (err) {
-      console.error("Error generating AI analysis:", err);
-      setAiAnalysis("Oops, something went wrong while generating the analysis!");
+      console.error("Error generating AI analysis:", err.message, err.stack);
+      setAiAnalysis(`Error: ${err.message || "Unknown error occurred while generating the analysis."}`);
     } finally {
-      setAnalysisLoading(false);
+      setLoadingAnalysis(false);
+    }
+  };
+
+  const handleAiReport = async () => {
+    if (!isAuthenticated || !user || portfolioItems.length === 0) {
+      setAiReport("Please add items to your portfolio to get an AI report!");
+      return;
+    }
+
+    setLoadingReport(true);
+    setAiReport("");
+
+    if (portfolioSummary.items.length === 0) {
+      setAiReport("Portfolio summary data is not loaded. Please wait and try again.");
+      setLoadingReport(false);
+      return;
+    }
+
+    const totalNav = portfolioSummary.total_latest_nav;
+    const summary = {
+      items: portfolioSummary.items.map(item => ({
+        name: item.name,
+        type: item.type,
+        latest_nav: item.latest_nav,
+        one_year_growth: item.one_year_growth,
+        monte_carlo_prediction: item.monte_carlo,
+        risk_volatility: item.risk_volatility,
+      })),
+      total_latest_nav: totalNav,
+    };
+
+    const prompt = `
+      Act as a Mutual Fund Expert Advisor. I have a portfolio with the following data:
+      - Portfolio Items: ${JSON.stringify(summary.items, null, 2)}
+      - Total Latest NAV: ₹${summary.total_latest_nav.toFixed(2)}
+      Provide a detailed, friendly report for a beginner investor, guiding them on how to proceed with this portfolio based on this data:
+      Fund Overview - Briefly explain what this portfolio contains and its investment focus.
+      Performance Summary - Summarize its recent performance and trends.
+      Risk Assessment - Evaluate its risk level using volatility and monthly swings.
+      Future Outlook - Use Monte Carlo data to predict future performance and potential.
+      Action Plan - Provide simple, actionable steps (e.g., invest, hold, diversify) with reasons based on the data.
+      Format each section with a heading in bold (e.g., **Fund Overview**) followed by a short paragraph. Keep it easy to understand, avoid complicated terms, and make it feel like expert yet friendly guidance!
+    `;
+
+    try {
+      console.log("Starting AI Report generation with:", summary);
+      const chatCompletion = await groqClient.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.8,
+        max_completion_tokens: 2048,
+        top_p: 1,
+        stream: true,
+        stop: null,
+      });
+
+      let report = "";
+      for await (const chunk of chatCompletion) {
+        report += chunk.choices[0]?.delta?.content || "";
+        setAiReport(report);
+      }
+      console.log("AI Report generation completed:", report);
+    } catch (err) {
+      console.error("Error generating AI report:", err.message, err.stack);
+      setAiReport(`Error: ${err.message || "Unknown error occurred while generating the report. Check your API key or network."}`);
+    } finally {
+      setLoadingReport(false);
     }
   };
 
@@ -112,23 +191,53 @@ const Portfolio = () => {
           <p className="text-gray-400 text-lg mb-4">
             Here’s everything you’ve added to your portfolio:
           </p>
-          <button
-            onClick={handleAiAnalysis}
-            disabled={analysisLoading || portfolioItems.length === 0}
-            className={`py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${
-              analysisLoading || portfolioItems.length === 0
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-secondary"
-            }`}
-          >
-            {analysisLoading ? "Generating..." : "Get AI Analysis"}
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={handleAiAnalysis}
+              disabled={loadingAnalysis || loadingReport || portfolioItems.length === 0}
+              className={`py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${
+                loadingAnalysis || loadingReport || portfolioItems.length === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-blue-500"
+              }`}
+            >
+              {loadingAnalysis ? "Generating..." : "AI DOST"}
+            </button>
+            <button
+              onClick={handleAiReport}
+              disabled={loadingAnalysis || loadingReport || portfolioItems.length === 0}
+              className={`py-2 px-4 rounded bg-purple-600 text-white font-poppins font-medium ${
+                loadingAnalysis || loadingReport || portfolioItems.length === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-purple-700"
+              }`}
+            >
+              {loadingReport ? "Generating..." : "AI Report"}
+            </button>
+          </div>
         </div>
 
         {aiAnalysis && (
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md text-white">
-            <h3 className="text-lg font-semibold mb-2">AI DOST</h3>
-            <p className="text-sm">{aiAnalysis}</p>
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 shadow-md text-white">
+            <h3 className="text-xl font-semibold mb-4 text-blue-300">AI DOST Analysis</h3>
+            <div
+              className="text-gray-200 text-base leading-relaxed"
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              {aiAnalysis}
+            </div>
+          </div>
+        )}
+
+        {aiReport && (
+          <div className="bg-gray-900 rounded-lg p-6 mb-6 shadow-lg border border-purple-500">
+            <h3 className="text-2xl font-bold mb-6 text-purple-300 tracking-wide">AI Investment Report</h3>
+            <div
+              className="text-gray-100 text-lg leading-loose font-light"
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              {aiReport}
+            </div>
           </div>
         )}
 
