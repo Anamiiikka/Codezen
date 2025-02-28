@@ -1,10 +1,8 @@
-// frontend/src/EducationHub/App.jsx
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import styles from "../style"; // Import app-wide styles
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 
 const initialVideos = [
   { title: "Stock Market for Beginners", videoId: "p7HKvqRI_Bo" },
@@ -43,10 +41,6 @@ const EducationHub = () => {
   const [videos, setVideos] = useState(initialVideos);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [blogQuery, setBlogQuery] = useState("");
-  const [blogs, setBlogs] = useState([]);
-  const [blogLoading, setBlogLoading] = useState(false);
-  const [blogError, setBlogError] = useState("");
 
   const fetchVideos = async () => {
     if (!query) {
@@ -78,45 +72,6 @@ const EducationHub = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchBlogs = async () => {
-    if (!NEWS_API_KEY) {
-      setBlogError("Missing News API key.");
-      return;
-    }
-    setBlogLoading(true);
-    setBlogError("");
-    try {
-      const searchTerm = blogQuery || "finance investment";
-      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(
-        searchTerm
-      )}&language=en&sortBy=relevancy&apiKey=${NEWS_API_KEY}&pageSize=6`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data = await response.json();
-      if (!data.articles || data.articles.length === 0) throw new Error("No articles found.");
-      setBlogs(
-        data.articles.map((article) => ({
-          title: article.title,
-          description: article.description || "No description available",
-          url: article.url,
-        }))
-      );
-    } catch (err) {
-      setBlogError(`Failed to fetch blogs: ${err.message}`);
-      setBlogs([]);
-    } finally {
-      setBlogLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBlogs();
-  }, []);
-
-  const handleBlogSearch = () => {
-    fetchBlogs();
   };
 
   return (
@@ -191,77 +146,7 @@ const EducationHub = () => {
           className={`${styles.heading2} text-center mb-8`}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5, duration: 0.8 }}
-        >
-          Financial Blogs
-        </motion.h2>
-
-        <motion.div
-          className={`${styles.flexCenter} flex-col sm:flex-row gap-4 mb-8`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.6, duration: 0.8 }}
-        >
-          <input
-            type="text"
-            value={blogQuery}
-            onChange={(e) => setBlogQuery(e.target.value)}
-            placeholder="Search financial blog topics..."
-            className="p-3 w-full sm:w-3/4 rounded bg-dimBlue text-white focus:outline-none font-poppins"
-          />
-          <motion.button
-            onClick={handleBlogSearch}
-            className="py-3 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Search
-          </motion.button>
-        </motion.div>
-
-        {blogLoading && <p className={`${styles.paragraph} text-center`}>Loading blogs...</p>}
-        {blogError && <p className={`${styles.paragraph} text-center text-red-500`}>{blogError}</p>}
-
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.8, duration: 0.8 }}
-        >
-          {blogs.length > 0 ? (
-            blogs.map((blog, index) => (
-              <motion.div
-                key={index}
-                className="bg-black-gradient p-4 rounded-[20px] feature-card"
-                whileHover={{ scale: 1.05 }}
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.8 + index * 0.2, duration: 0.5 }}
-              >
-                <h3 className="font-poppins font-semibold text-white text-[18px] leading-[23.4px] mb-2">
-                  {blog.title}
-                </h3>
-                <p className={`${styles.paragraph} mb-3`}>{blog.description}</p>
-                <a
-                  href={blog.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2 px-4 font-poppins font-medium text-[16px] text-primary bg-blue-gradient rounded-[10px] inline-block"
-                >
-                  Read More
-                </a>
-              </motion.div>
-            ))
-          ) : (
-            !blogLoading && <p className={`${styles.paragraph} text-center`}>No blogs found.</p>
-          )}
-        </motion.div>
-
-        <motion.h2
-          className={`${styles.heading2} text-center mb-8`}
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.2, duration: 0.8 }}
+          transition={{ delay: 1.5, duration: 0.8 }} // Adjusted delay since Financial Blogs is removed
         >
           Trending Financial News
         </motion.h2>
@@ -270,7 +155,7 @@ const EducationHub = () => {
           className="grid grid-cols-1 sm:grid-cols-2 gap-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2.5, duration: 0.8 }}
+          transition={{ delay: 1.8, duration: 0.8 }} // Adjusted delay since Financial Blogs is removed
         >
           {trendingNews.map((news, index) => (
             <motion.div
@@ -279,7 +164,7 @@ const EducationHub = () => {
               whileHover={{ scale: 1.05 }}
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 2.5 + index * 0.2, duration: 0.5 }}
+              transition={{ delay: 1.8 + index * 0.2, duration: 0.5 }} // Adjusted delay
             >
               <h3 className="font-poppins font-semibold text-white text-[18px] leading-[23.4px] mb-2">
                 {news.title}
