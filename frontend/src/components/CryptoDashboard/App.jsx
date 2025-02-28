@@ -7,6 +7,7 @@ import styles from "../../style";
 import { CoinContext } from "../../context/CoinContext";
 import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
+import { useAuth0 } from "@auth0/auth0-react";
 
 // Custom Components
 const RiskVolatility = ({ selectedCoin }) => {
@@ -249,7 +250,8 @@ const CalculateReturns = ({ selectedCoin, historicalPrice }) => {
 };
 
 const CryptoDashboard = () => {
-  const { allCoin } = useContext(CoinContext);
+  const { allCoin, currency } = useContext(CoinContext);
+  const { user, isAuthenticated } = useAuth0();
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [selectedCoin, setSelectedCoin] = useState(null);
@@ -347,6 +349,25 @@ const CryptoDashboard = () => {
     setSuggestions([]);
   };
 
+  const addToPortfolio = async (coin) => {
+    if (!isAuthenticated || !user) {
+      alert("Please log in to add items to your portfolio!");
+      return;
+    }
+    try {
+      const response = await axios.post("http://localhost:8000/api/add-to-portfolio", {
+        user_id: user.sub,
+        item_type: "crypto",
+        item_id: coin.id,
+        name: coin.name,
+      });
+      alert(response.data.message);
+    } catch (err) {
+      console.error("Error adding to portfolio:", err);
+      alert(err.response?.data?.detail || "Failed to add to portfolio");
+    }
+  };
+
   const handleAiAnalysis = async () => {
     if (!selectedCoin || Object.keys(coinDetails).length === 0) {
       setAiAnalysis("Please select a coin first!");
@@ -410,7 +431,7 @@ const CryptoDashboard = () => {
     setPriceRange(days);
   };
 
-  const filteredPriceData = historicalPrice; // Use full data fetched for the selected range
+  const filteredPriceData = historicalPrice;
 
   const plotData = heatmapData.length > 0 ? [{
     x: heatmapData.map(d => d.month),
@@ -420,10 +441,134 @@ const CryptoDashboard = () => {
     colorscale: "Viridis",
   }] : [];
 
+  const randomCoinsSection = (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {randomCoins.map((coin) => (
+        <div
+          key={coin.id}
+          className="bg-gray-800 rounded-lg p-4 shadow-md hover:bg-gray-700 transition-colors"
+        >
+          <h3 className="text-white text-md font-semibold mb-2">{coin.name}</h3>
+          <p className="text-gray-400 text-sm">Symbol: {coin.symbol.toUpperCase()}</p>
+          <p className="text-gray-400 text-sm">Price: {currency.Symbol}{coin.current_price.toLocaleString()}</p>
+          <div className="flex justify-between mt-2">
+            <button
+              onClick={() => handleSelectCoin(coin)}
+              className="py-1 px-3 bg-blue-gradient text-primary rounded font-poppins text-sm"
+            >
+              View Details
+            </button>
+            <button
+              onClick={() => addToPortfolio(coin)}
+              className="py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700"
+            >
+              Add to Portfolio
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const selectedCoinSection = selectedCoin && (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <h3 className="text-white text-lg font-semibold mb-2">{selectedCoin.name}</h3>
+        <div className="text-gray-300 text-sm">
+          <p><span className="font-medium">Symbol:</span> {coinDetails.symbol?.toUpperCase()}</p>
+          <p><span className="font-medium">Market Cap:</span> ${coinDetails.market_cap?.usd?.toLocaleString()}</p>
+          <p><span className="font-medium">Current Price:</span> ${coinDetails.market_data?.current_price?.usd?.toFixed(2)}</p>
+          <p><span className="font-medium">Launch Date:</span> {coinDetails.genesis_date || "N/A"}</p>
+          <p><span className="font-medium">Volume (24h):</span> ${coinDetails.market_data?.total_volume?.usd?.toLocaleString()}</p>
+        </div>
+        <button
+          onClick={() => addToPortfolio(selectedCoin)}
+          className="mt-4 py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700"
+        >
+          Add to Portfolio
+        </button>
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md flex flex-col">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-white text-lg font-semibold">Historical Price</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleRangeChange("30")}
+              className={`py-1 px-2 rounded text-white ${priceRange === "30" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+            >
+              1M
+            </button>
+            <button
+              onClick={() => handleRangeChange("90")}
+              className={`py-1 px-2 rounded text-white ${priceRange === "90" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+            >
+              3M
+            </button>
+            <button
+              onClick={() => handleRangeChange("180")}
+              className={`py-1 px-2 rounded text-white ${priceRange === "180" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+            >
+              6M
+            </button>
+            <button
+              onClick={() => handleRangeChange("365")}
+              className={`py-1 px-2 rounded text-white ${priceRange === "365" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
+            >
+              1Y
+            </button>
+          </div>
+        </div>
+        {filteredPriceData.length > 0 ? (
+          <LineChart width={350} height={200} data={filteredPriceData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+            <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} interval="preserveStartEnd" tickCount={6} />
+            <YAxis stroke="#fff" tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
+            <Tooltip contentStyle={{ backgroundColor: "#333", border: "none" }} />
+            <Line type="monotone" dataKey="nav" stroke="#00f6ff" dot={false} strokeWidth={2} />
+          </LineChart>
+        ) : (
+          <p className="text-gray-400">No price data</p>
+        )}
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <CalculateReturns selectedCoin={selectedCoin} historicalPrice={historicalPrice} />
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <h3 className="text-white text-lg font-semibold mb-2">Performance Heatmap</h3>
+        {heatmapData.length > 0 ? (
+          <Plotly
+            data={plotData}
+            layout={{
+              xaxis: { title: "Month", color: "#fff", tickfont: { size: 10 } },
+              yaxis: { title: "Day Change", color: "#fff", tickfont: { size: 10 } },
+              width: 350,
+              height: 200,
+              margin: { t: 20, b: 40, l: 40, r: 20 },
+            }}
+            config={{ displayModeBar: false }}
+          />
+        ) : (
+          <p className="text-gray-400">No heatmap data</p>
+        )}
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <RiskVolatility selectedCoin={selectedCoin} />
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <MonteCarloPrediction selectedCoin={selectedCoin} />
+      </div>
+    </div>
+  );
+
   return (
     <div className={`bg-primary ${styles.paddingX} min-h-screen py-6`}>
       <div className="max-w-[1200px] mx-auto">
-        <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md">
+        <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md relative">
           <input
             type="text"
             value={searchTerm}
@@ -445,13 +590,10 @@ const CryptoDashboard = () => {
               ))}
             </ul>
           )}
-        </div>
-
-        <div className="mb-6">
           <button
             onClick={handleAiAnalysis}
             disabled={loading || !selectedCoin}
-            className={`py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loading || !selectedCoin ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"}`}
+            className={`mt-4 py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loading || !selectedCoin ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"}`}
           >
             {loading ? "Generating..." : "AI Analysis"}
           </button>
@@ -469,105 +611,9 @@ const CryptoDashboard = () => {
         ) : error ? (
           <p className="text-red-500 text-center">{error}</p>
         ) : selectedCoin ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <h3 className="text-white text-lg font-semibold mb-2">{selectedCoin.name}</h3>
-              <div className="text-gray-300 text-sm">
-                <p><span className="font-medium">Symbol:</span> {coinDetails.symbol?.toUpperCase()}</p>
-                <p><span className="font-medium">Market Cap:</span> ${coinDetails.market_cap?.usd?.toLocaleString()}</p>
-                <p><span className="font-medium">Current Price:</span> ${coinDetails.market_data?.current_price?.usd?.toFixed(2)}</p>
-                <p><span className="font-medium">Launch Date:</span> {coinDetails.genesis_date || "N/A"}</p>
-                <p><span className="font-medium">Volume (24h):</span> ${coinDetails.market_data?.total_volume?.usd?.toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md flex flex-col">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-white text-lg font-semibold">Historical Price</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRangeChange("30")}
-                    className={`py-1 px-2 rounded text-white ${priceRange === "30" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
-                  >
-                    1M
-                  </button>
-                  <button
-                    onClick={() => handleRangeChange("90")}
-                    className={`py-1 px-2 rounded text-white ${priceRange === "90" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
-                  >
-                    3M
-                  </button>
-                  <button
-                    onClick={() => handleRangeChange("180")}
-                    className={`py-1 px-2 rounded text-white ${priceRange === "180" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
-                  >
-                    6M
-                  </button>
-                  <button
-                    onClick={() => handleRangeChange("365")}
-                    className={`py-1 px-2 rounded text-white ${priceRange === "365" ? "bg-blue-gradient" : "bg-gray-700"} hover:bg-secondary`}
-                  >
-                    1Y
-                  </button>
-                </div>
-              </div>
-              {filteredPriceData.length > 0 ? (
-                <LineChart width={350} height={200} data={filteredPriceData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} interval="preserveStartEnd" tickCount={6} />
-                  <YAxis stroke="#fff" tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-                  <Tooltip contentStyle={{ backgroundColor: "#333", border: "none" }} />
-                  <Line type="monotone" dataKey="nav" stroke="#00f6ff" dot={false} strokeWidth={2} />
-                </LineChart>
-              ) : (
-                <p className="text-gray-400">No price data</p>
-              )}
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <CalculateReturns selectedCoin={selectedCoin} historicalPrice={historicalPrice} />
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <h3 className="text-white text-lg font-semibold mb-2">Performance Heatmap</h3>
-              {heatmapData.length > 0 ? (
-                <Plotly
-                  data={plotData}
-                  layout={{
-                    xaxis: { title: "Month", color: "#fff", tickfont: { size: 10 } },
-                    yaxis: { title: "Day Change", color: "#fff", tickfont: { size: 10 } },
-                    width: 350,
-                    height: 200,
-                    margin: { t: 20, b: 40, l: 40, r: 20 },
-                  }}
-                  config={{ displayModeBar: false }}
-                />
-              ) : (
-                <p className="text-gray-400">No heatmap data</p>
-              )}
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <RiskVolatility selectedCoin={selectedCoin} />
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <MonteCarloPrediction selectedCoin={selectedCoin} />
-            </div>
-          </div>
+          selectedCoinSection
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {randomCoins.map((coin) => (
-              <div
-                key={coin.id}
-                onClick={() => handleSelectCoin(coin)}
-                className="bg-gray-800 rounded-lg p-4 shadow-md hover:bg-gray-700 cursor-pointer transition-colors"
-              >
-                <h3 className="text-white text-md font-semibold mb-2">{coin.name}</h3>
-                <p className="text-gray-400 text-sm">Symbol: {coin.symbol.toUpperCase()}</p>
-              </div>
-            ))}
-          </div>
+          randomCoinsSection
         )}
       </div>
       <Chatbot selectedFund={selectedCoin} />

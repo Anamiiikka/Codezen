@@ -9,8 +9,10 @@ import MonteCarloPrediction from "./MonteCarloPrediiction";
 import CalculateReturns from "./CalculateReturns";
 import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const MutualFundDashboard = () => {
+  const { user, isAuthenticated } = useAuth0();
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [selectedFund, setSelectedFund] = useState(null);
@@ -125,6 +127,25 @@ const MutualFundDashboard = () => {
     setSuggestions([]);
   };
 
+  const addToPortfolio = async (item) => {
+    if (!isAuthenticated || !user) {
+      alert("Please log in to add items to your portfolio!");
+      return;
+    }
+    try {
+      const response = await axios.post("http://localhost:8000/api/add-to-portfolio", {
+        user_id: user.sub,
+        item_type: "mutual_fund",
+        item_id: item.code,
+        name: item.name,
+      });
+      alert(response.data.message);
+    } catch (err) {
+      console.error("Error adding to portfolio:", err);
+      alert(err.response?.data?.detail || "Failed to add to portfolio");
+    }
+  };
+
   const handleAiAnalysis = async () => {
     if (!selectedFund || Object.keys(fundDetails).length === 0) {
       setAiAnalysis("Please select a fund first!");
@@ -188,7 +209,6 @@ const MutualFundDashboard = () => {
     }
   };
 
-  // Filter NAV data based on selected time period
   const getFilteredNavData = () => {
     if (!historicalNav.length) return [];
     let days;
@@ -200,7 +220,6 @@ const MutualFundDashboard = () => {
       default: days = 30;
     }
     const filtered = historicalNav.slice(-days);
-    // Reduce data points for better visualization if more than 30 points
     return filtered.length > 30 ? filtered.filter((_, index) => index % Math.ceil(filtered.length / 30) === 0) : filtered;
   };
 
@@ -215,6 +234,120 @@ const MutualFundDashboard = () => {
     : [];
 
   const filteredNavData = getFilteredNavData();
+
+  const randomFundsSection = (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {randomFunds.map((fund) => (
+        <div
+          key={fund.code}
+          className="bg-gray-800 rounded-lg p-4 shadow-md hover:bg-gray-700 transition-colors"
+        >
+          <h3 className="text-white text-md font-semibold mb-2">{fund.name}</h3>
+          <p className="text-gray-400 text-sm">Code: {fund.code}</p>
+          <div className="flex justify-between mt-2">
+            <button
+              onClick={() => handleSelectFund(fund)}
+              className="py-1 px-3 bg-blue-gradient text-primary rounded font-poppins text-sm"
+            >
+              View Details
+            </button>
+            <button
+              onClick={() => addToPortfolio(fund)}
+              className="py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700"
+            >
+              Add to Portfolio
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const selectedFundSection = selectedFund && (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <h3 className="text-white text-lg font-semibold mb-2">{selectedFund.name}</h3>
+        <div className="text-gray-300 text-sm">
+          {Object.entries(fundDetails).slice(0, 5).map(([key, value]) => (
+            <p key={key} className="mb-1">
+              <span className="font-medium">{key.replace(/_/g, " ")}:</span>{" "}
+              {key === "scheme_start_date" && value.includes("date")
+                ? (() => {
+                    const parsed = JSON.parse(value.replace(/'/g, '"'));
+                    return `${parsed.date} (NAV: ${parsed.nav})`;
+                  })()
+                : value}
+            </p>
+          ))}
+        </div>
+        <button
+          onClick={() => addToPortfolio(selectedFund)}
+          className="mt-4 py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700"
+        >
+          Add to Portfolio
+        </button>
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-white text-lg font-semibold">Historical NAV</h3>
+          <div className="flex gap-2">
+            {["1M", "3M", "6M", "1Y"].map((period) => (
+              <button
+                key={period}
+                onClick={() => setTimePeriod(period)}
+                className={`px-2 py-1 rounded text-sm ${timePeriod === period ? "bg-blue-gradient text-primary" : "bg-gray-700 text-white"} hover:bg-secondary`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+        {filteredNavData.length > 0 ? (
+          <LineChart width={350} height={200} data={filteredNavData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+            <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} interval="preserveStartEnd" tickCount={6} />
+            <YAxis stroke="#fff" tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
+            <Tooltip contentStyle={{ backgroundColor: "#333", border: "none" }} />
+            <Line type="monotone" dataKey="nav" stroke="#00f6ff" dot={false} strokeWidth={2} />
+          </LineChart>
+        ) : (
+          <p className="text-gray-400">No NAV data</p>
+        )}
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <CalculateReturns selectedScheme={selectedFund} />
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <h3 className="text-white text-lg font-semibold mb-2">Performance Heatmap</h3>
+        {heatmapData.length > 0 ? (
+          <Plotly
+            data={plotData}
+            layout={{
+              xaxis: { title: "Month", color: "#fff", tickfont: { size: 10 } },
+              yaxis: { title: "Day Change", color: "#fff", tickfont: { size: 10 } },
+              width: 350,
+              height: 200,
+              margin: { t: 20, b: 40, l: 40, r: 20 },
+            }}
+            config={{ displayModeBar: false }}
+          />
+        ) : (
+          <p className="text-gray-400">No heatmap data</p>
+        )}
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <RiskVolatility selectedScheme={selectedFund} />
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-4 shadow-md">
+        <MonteCarloPrediction selectedScheme={selectedFund} />
+      </div>
+    </div>
+  );
 
   return (
     <div className={`bg-primary ${styles.paddingX} min-h-screen py-6`}>
@@ -262,96 +395,9 @@ const MutualFundDashboard = () => {
         ) : error ? (
           <p className="text-red-500 text-center">{error}</p>
         ) : selectedFund ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <h3 className="text-white text-lg font-semibold mb-2">{selectedFund.name}</h3>
-              <div className="text-gray-300 text-sm">
-                {Object.entries(fundDetails).slice(0, 5).map(([key, value]) => (
-                  <p key={key} className="mb-1">
-                    <span className="font-medium">{key.replace(/_/g, " ")}:</span>{" "}
-                    {key === "scheme_start_date" && value.includes("date")
-                      ? (() => {
-                          const parsed = JSON.parse(value.replace(/'/g, '"'));
-                          return `${parsed.date} (NAV: ${parsed.nav})`;
-                        })()
-                      : value}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-white text-lg font-semibold">Historical NAV</h3>
-                <div className="flex gap-2">
-                  {["1M", "3M", "6M", "1Y"].map((period) => (
-                    <button
-                      key={period}
-                      onClick={() => setTimePeriod(period)}
-                      className={`px-2 py-1 rounded text-sm ${timePeriod === period ? "bg-blue-gradient text-primary" : "bg-gray-700 text-white"} hover:bg-secondary`}
-                    >
-                      {period}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {filteredNavData.length > 0 ? (
-                <LineChart width={350} height={200} data={filteredNavData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} interval="preserveStartEnd" tickCount={6} />
-                  <YAxis stroke="#fff" tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-                  <Tooltip contentStyle={{ backgroundColor: "#333", border: "none" }} />
-                  <Line type="monotone" dataKey="nav" stroke="#00f6ff" dot={false} strokeWidth={2} />
-                </LineChart>
-              ) : (
-                <p className="text-gray-400">No NAV data</p>
-              )}
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <CalculateReturns selectedScheme={selectedFund} />
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <h3 className="text-white text-lg font-semibold mb-2">Performance Heatmap</h3>
-              {heatmapData.length > 0 ? (
-                <Plotly
-                  data={plotData}
-                  layout={{
-                    xaxis: { title: "Month", color: "#fff", tickfont: { size: 10 } },
-                    yaxis: { title: "Day Change", color: "#fff", tickfont: { size: 10 } },
-                    width: 350,
-                    height: 200,
-                    margin: { t: 20, b: 40, l: 40, r: 20 },
-                  }}
-                  config={{ displayModeBar: false }}
-                />
-              ) : (
-                <p className="text-gray-400">No heatmap data</p>
-              )}
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <RiskVolatility selectedScheme={selectedFund} />
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <MonteCarloPrediction selectedScheme={selectedFund} />
-            </div>
-          </div>
+          selectedFundSection
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {randomFunds.map((fund) => (
-              <div
-                key={fund.code}
-                onClick={() => handleSelectFund(fund)}
-                className="bg-gray-800 rounded-lg p-4 shadow-md hover:bg-gray-700 cursor-pointer transition-colors"
-              >
-                <h3 className="text-white text-md font-semibold mb-2">{fund.name}</h3>
-                <p className="text-gray-400 text-sm">Code: {fund.code}</p>
-              </div>
-            ))}
-          </div>
+          randomFundsSection
         )}
       </div>
       <Chatbot selectedFund={selectedFund} />

@@ -4,17 +4,39 @@ import { close, logo, menu } from "../assets";
 import { navLinks } from "../constants";
 import { Link } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
+// import axios from "axios"; // Uncomment if using modal approach
 
 const Navbar = () => {
-  const { logout, isAuthenticated } = useAuth0();
+  const { logout, loginWithRedirect, user, isAuthenticated } = useAuth0();
   const [active, setActive] = useState("Home");
   const [toggle, setToggle] = useState(false);
   const [dropdown, setDropdown] = useState(false);
+  // const [portfolioVisible, setPortfolioVisible] = useState(false); // Uncomment for modal
+  // const [portfolioItems, setPortfolioItems] = useState([]); // Uncomment for modal
 
-  // Toggle dropdown on click
+  // Toggle dropdown for "Options"
   const handleDropdownToggle = () => {
     setDropdown((prev) => !prev);
   };
+
+  // Fetch and show portfolio (Modal approach, commented out)
+  /*
+  const handlePortfolioClick = async () => {
+    if (!isAuthenticated) {
+      alert("Please log in to view your portfolio!");
+      loginWithRedirect();
+      return;
+    }
+    try {
+      const response = await axios.get(`http://localhost:8000/api/get-portfolio/${user.sub}`);
+      setPortfolioItems(response.data);
+      setPortfolioVisible(true);
+    } catch (err) {
+      console.error("Error fetching portfolio:", err);
+      alert("Failed to fetch portfolio");
+    }
+  };
+  */
 
   return (
     <nav className="w-full flex py-6 justify-between items-center navbar">
@@ -31,7 +53,7 @@ const Navbar = () => {
             } ${index === navLinks.length - 1 ? "mr-10" : "mr-10"}`}
             onClick={() => {
               setActive(nav.title);
-              if (nav.id === "Options") handleDropdownToggle(); // Toggle dropdown on click
+              if (nav.id === "Options") handleDropdownToggle();
             }}
           >
             {nav.id === "Options" ? (
@@ -64,7 +86,15 @@ const Navbar = () => {
             )}
           </li>
         ))}
-        {isAuthenticated && (
+        <li
+          className={`font-poppins font-normal cursor-pointer text-[16px] ${
+            active === "Portfolio" ? "text-white" : "text-dimWhite"
+          } mr-10`}
+          onClick={() => setActive("Portfolio")}
+        >
+          <Link to="/dashboard/portfolio">Portfolio</Link>
+        </li>
+        {isAuthenticated ? (
           <li className="ml-6">
             <button
               type="button"
@@ -72,6 +102,16 @@ const Navbar = () => {
               onClick={() => logout({ returnTo: window.location.origin })}
             >
               Logout
+            </button>
+          </li>
+        ) : (
+          <li className="ml-6">
+            <button
+              type="button"
+              className="py-4 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
+              onClick={() => loginWithRedirect()}
+            >
+              Login
             </button>
           </li>
         )}
@@ -98,7 +138,7 @@ const Navbar = () => {
                 } ${index === navLinks.length - 1 ? "mb-4" : "mb-4"}`}
                 onClick={() => {
                   setActive(nav.title);
-                  if (nav.id === "Options") handleDropdownToggle(); // Toggle dropdown on click (optional for mobile)
+                  if (nav.id === "Options") handleDropdownToggle();
                 }}
               >
                 {nav.id === "Options" ? (
@@ -131,7 +171,15 @@ const Navbar = () => {
                 )}
               </li>
             ))}
-            {isAuthenticated && (
+            <li
+              className={`font-poppins font-medium cursor-pointer text-[16px] ${
+                active === "Portfolio" ? "text-white" : "text-dimWhite"
+              } mb-4`}
+              onClick={() => setActive("Portfolio")}
+            >
+              <Link to="/dashboard/portfolio">Portfolio</Link>
+            </li>
+            {isAuthenticated ? (
               <li className="mt-4">
                 <button
                   type="button"
@@ -139,6 +187,16 @@ const Navbar = () => {
                   onClick={() => logout({ returnTo: window.location.origin })}
                 >
                   Logout
+                </button>
+              </li>
+            ) : (
+              <li className="mt-4">
+                <button
+                  type="button"
+                  className="py-4 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
+                  onClick={() => loginWithRedirect()}
+                >
+                  Login
                 </button>
               </li>
             )}
