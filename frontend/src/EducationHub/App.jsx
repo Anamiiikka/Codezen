@@ -8,10 +8,10 @@ const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 
 const initialVideos = [
   { title: "Stock Market for Beginners", videoId: "p7HKvqRI_Bo" },
-  { title: "How to Invest in ETFs", videoId: "pT7tW4miW0w" },
-  { title: "Mutual Funds Explained", videoId: "R8u8oL2l-aM" },
-  { title: "Cryptocurrency Investing", videoId: "iS2-SfolkJc" },
-  { title: "Understanding Bonds", videoId: "IoV_ggmQ4nk" },
+  { title: "How to Invest in ETFs", videoId: "PHe0bXAIuk0" },
+  { title: "Mutual Funds Explained", videoId: "1d_jYPL6uUI" },
+  { title: "Cryptocurrency Investing", videoId: "9nlhmVrkv1Q" },
+  { title: "Understanding Bonds", videoId: "BWLM5oYqyMk" },
   { title: "Ethereum and Smart Contracts", videoId: "pWGLtjG-F5c" },
 ];
 
