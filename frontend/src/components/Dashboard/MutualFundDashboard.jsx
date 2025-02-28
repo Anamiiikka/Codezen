@@ -21,6 +21,7 @@ const MutualFundDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
+  const [timePeriod, setTimePeriod] = useState("1M"); // Default to 1 month
 
   const groqClient = new Groq({
     apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -124,7 +125,6 @@ const MutualFundDashboard = () => {
     setSuggestions([]);
   };
 
-  // Define handleAiAnalysis
   const handleAiAnalysis = async () => {
     if (!selectedFund || Object.keys(fundDetails).length === 0) {
       setAiAnalysis("Please select a fund first!");
@@ -188,6 +188,22 @@ const MutualFundDashboard = () => {
     }
   };
 
+  // Filter NAV data based on selected time period
+  const getFilteredNavData = () => {
+    if (!historicalNav.length) return [];
+    let days;
+    switch (timePeriod) {
+      case "1M": days = 30; break;
+      case "3M": days = 90; break;
+      case "6M": days = 180; break;
+      case "1Y": days = 365; break;
+      default: days = 30;
+    }
+    const filtered = historicalNav.slice(-days);
+    // Reduce data points for better visualization if more than 30 points
+    return filtered.length > 30 ? filtered.filter((_, index) => index % Math.ceil(filtered.length / 30) === 0) : filtered;
+  };
+
   const plotData = heatmapData.length > 0
     ? [{
         x: heatmapData.map((d) => d.month),
@@ -198,33 +214,12 @@ const MutualFundDashboard = () => {
       }]
     : [];
 
-  const filteredNavData = historicalNav.length > 30
-    ? historicalNav.slice(-60).filter((_, index) => index % 2 === 0)
-    : historicalNav;
+  const filteredNavData = getFilteredNavData();
 
   return (
     <div className={`bg-primary ${styles.paddingX} min-h-screen py-6`}>
       <div className="max-w-[1200px] mx-auto">
-        <div className="mb-6">
-          <button
-            onClick={handleAiAnalysis} // This is line 51 or close to it
-            disabled={loading || !selectedFund}
-            className={`py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${
-              loading || !selectedFund ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
-            }`}
-          >
-            {loading ? "Generating..." : "AI Analysis"}
-          </button>
-        </div>
-
-        {aiAnalysis && (
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md text-white">
-            <h3 className="text-lg font-semibold mb-2">AI Analysis</h3>
-            <p className="text-sm">{aiAnalysis}</p>
-          </div>
-        )}
-
-        <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md">
+        <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md relative">
           <input
             type="text"
             value={searchTerm}
@@ -246,7 +241,21 @@ const MutualFundDashboard = () => {
               ))}
             </ul>
           )}
+          <button
+            onClick={handleAiAnalysis}
+            disabled={loading || !selectedFund}
+            className={`mt-4 py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loading || !selectedFund ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"}`}
+          >
+            {loading ? "Generating..." : "AI Analysis"}
+          </button>
         </div>
+
+        {aiAnalysis && (
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md text-white">
+            <h3 className="text-lg font-semibold mb-2">AI Analysis</h3>
+            <p className="text-sm">{aiAnalysis}</p>
+          </div>
+        )}
 
         {loading && !aiAnalysis ? (
           <p className="text-white text-center">Loading...</p>
@@ -272,7 +281,20 @@ const MutualFundDashboard = () => {
             </div>
 
             <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-              <h3 className="text-white text-lg font-semibold mb-2">Historical NAV (30+ Days)</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-white text-lg font-semibold">Historical NAV</h3>
+                <div className="flex gap-2">
+                  {["1M", "3M", "6M", "1Y"].map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setTimePeriod(period)}
+                      className={`px-2 py-1 rounded text-sm ${timePeriod === period ? "bg-blue-gradient text-primary" : "bg-gray-700 text-white"} hover:bg-secondary`}
+                    >
+                      {period}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {filteredNavData.length > 0 ? (
                 <LineChart width={350} height={200} data={filteredNavData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
