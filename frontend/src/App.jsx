@@ -19,6 +19,18 @@ import CryptoDashboard from "./components/CryptoDashboard/App";
 import { EducationHub } from "./EducationHub"; // Import EducationHub
 import { useAuth0 } from "@auth0/auth0-react";
 
+// Layout component to include Navbar consistently
+const Layout = ({ children }) => (
+  <div className="bg-primary w-full overflow-hidden">
+    <div className={`${styles.paddingX} ${styles.flexCenter}`}>
+      <div className={`${styles.boxWidth}`}>
+        <Navbar />
+      </div>
+    </div>
+    {children}
+  </div>
+);
+
 const Callback = () => {
   const { isLoading, error } = useAuth0();
   if (isLoading) return <div>Loading...</div>;
@@ -28,12 +40,7 @@ const Callback = () => {
 };
 
 const Home = () => (
-  <div className="bg-primary w-full overflow-hidden">
-    <div className={`${styles.paddingX} ${styles.flexCenter}`}>
-      <div className={`${styles.boxWidth}`}>
-        <Navbar />
-      </div>
-    </div>
+  <>
     <div className={`bg-primary ${styles.flexStart}`}>
       <div className={`${styles.boxWidth}`}>
         <Hero />
@@ -51,18 +58,20 @@ const Home = () => (
         <Footer />
       </div>
     </div>
-  </div>
+  </>
 );
 
 const Dashboard = () => (
   <div className="bg-primary w-full overflow-hidden">
-    <div className={`${styles.paddingX} ${styles.flexCenter}`}>
-      <div className={`${styles.boxWidth}`}>
-        <Navbar />
-      </div>
-    </div>
     <Routes>
-      <Route path="/stocks" element={<div className={`${styles.paddingY} ${styles.flexCenter} text-white`}>Stock Market Dashboard (To Be Developed)</div>} />
+      <Route
+        path="/stocks"
+        element={
+          <div className={`${styles.paddingY} ${styles.flexCenter} text-white`}>
+            Stock Market Dashboard (To Be Developed)
+          </div>
+        }
+      />
       <Route path="/mutual-funds" element={<MutualFundDashboard />} />
       <Route path="/crypto/*" element={<CryptoDashboard />} />
     </Routes>
@@ -73,9 +82,30 @@ const App = () => (
   <Router>
     <CoinContextProvider>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard/*" element={<Dashboard />} />
-        <Route path="/education" element={<EducationHub />} /> {/* New Education Hub route */}
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <Home />
+            </Layout>
+          }
+        />
+        <Route
+          path="/dashboard/*"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/education"
+          element={
+            <Layout>
+              <EducationHub />
+            </Layout>
+          }
+        />
         <Route path="/callback" element={<Callback />} />
       </Routes>
     </CoinContextProvider>
