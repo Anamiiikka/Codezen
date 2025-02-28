@@ -1,3 +1,4 @@
+// frontend/src/components/Navbar.jsx
 import { useState } from "react";
 import { close, logo, menu } from "../assets";
 import { navLinks } from "../constants";
@@ -20,7 +21,7 @@ const Navbar = () => {
             key={nav.id}
             className={`relative font-poppins font-normal cursor-pointer text-[16px] ${
               active === nav.title ? "text-white" : "text-dimWhite"
-            } ${index === navLinks.length - 1 ? "mr-0" : "mr-10"}`}
+            } ${index === navLinks.length - 1 ? "mr-10" : "mr-10"}`} // Changed mr-0 to mr-10 for "Options"
             onClick={() => setActive(nav.title)}
             onMouseEnter={() => nav.id === "Options" && setDropdown(true)}
             onMouseLeave={() => nav.id === "Options" && setDropdown(false)}
@@ -48,11 +49,14 @@ const Navbar = () => {
           </li>
         ))}
         {isAuthenticated && (
-          <li
-            className="font-poppins font-normal cursor-pointer text-[16px] text-dimWhite mr-10"
-            onClick={() => logout({ returnTo: window.location.origin })}
-          >
-            Logout
+          <li className="ml-6">
+            <button
+              type="button"
+              className="py-4 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
+              onClick={() => logout({ returnTo: window.location.origin })}
+            >
+              Logout
+            </button>
           </li>
         )}
       </ul>
@@ -75,7 +79,7 @@ const Navbar = () => {
                 key={nav.id}
                 className={`font-poppins font-medium cursor-pointer text-[16px] ${
                   active === nav.title ? "text-white" : "text-dimWhite"
-                } ${index === navLinks.length - 1 ? "mb-0" : "mb-4"}`}
+                } ${index === navLinks.length - 1 ? "mb-4" : "mb-4"}`}
                 onClick={() => setActive(nav.title)}
               >
                 {nav.id === "Options" ? (
@@ -87,7 +91,7 @@ const Navbar = () => {
             ))}
             {isAuthenticated && (
               <li
-                className="font-poppins font-medium cursor-pointer text-[16px] text-dimWhite mb-4"
+                className="font-poppins font-medium cursor-pointer text-[16px] text-dimWhite mt-4" // Changed mb-4 to mt-4
                 onClick={() => logout({ returnTo: window.location.origin })}
               >
                 Logout
