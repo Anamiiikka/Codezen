@@ -16,8 +16,7 @@ import {
 import MutualFundDashboard from "./components/Dashboard/MutualFundDashboard";
 import CoinContextProvider from "./context/CoinContext";
 import CryptoDashboard from "./components/CryptoDashboard/App";
-import { EducationHub } from "./EducationHub"; // Import EducationHub
-import { useAuth0 } from "@auth0/auth0-react";
+import { EducationHub } from "./EducationHub";
 
 // Layout component to include Navbar consistently
 const Layout = ({ children }) => (
@@ -30,14 +29,6 @@ const Layout = ({ children }) => (
     {children}
   </div>
 );
-
-const Callback = () => {
-  const { isLoading, error } = useAuth0();
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-  window.location.replace("/");
-  return null;
-};
 
 const Home = () => (
   <>
@@ -106,7 +97,7 @@ const App = () => (
             </Layout>
           }
         />
-        <Route path="/callback" element={<Callback />} />
+        {/* Removed <Route path="/callback" element={<Callback />} /> */}
       </Routes>
     </CoinContextProvider>
   </Router>

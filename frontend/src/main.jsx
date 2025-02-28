@@ -1,3 +1,4 @@
+// frontend/src/main.jsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
@@ -10,7 +11,7 @@ createRoot(document.getElementById('root')).render(
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: window.location.origin + '/callback', // Callback route
+        redirect_uri: window.location.origin, // Should be https://wealthwise-mw7u.onrender.com on Render
       }}
     >
       <App />
