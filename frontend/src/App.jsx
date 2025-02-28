@@ -1,4 +1,3 @@
-// frontend/src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import styles from "./style";
 import {
@@ -14,8 +13,18 @@ import {
   Footer,
 } from "./components";
 import MutualFundDashboard from "./components/Dashboard/MutualFundDashboard";
-import CoinContextProvider from "./context/CoinContext"; // Import from new context file
-import CryptoDashboard from "./components/CryptoDashboard/App"; // Import the adapted vrinda App.jsx
+import CoinContextProvider from "./context/CoinContext";
+import CryptoDashboard from "./components/CryptoDashboard/App";
+import { useAuth0 } from "@auth0/auth0-react"; // Import useAuth0
+
+// Callback Component
+const Callback = () => {
+  const { isLoading, error } = useAuth0();
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  window.location.replace("/"); // Redirect to home after login
+  return null;
+};
 
 // Home Page Component
 const Home = () => (
@@ -45,7 +54,7 @@ const Home = () => (
   </div>
 );
 
-// Main Dashboard Component (Wrapper for Stocks, Mutual Funds, and Crypto)
+// Main Dashboard Component
 const Dashboard = () => (
   <div className="bg-primary w-full overflow-hidden">
     <div className={`${styles.paddingX} ${styles.flexCenter}`}>
@@ -68,6 +77,7 @@ const App = () => (
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dashboard/*" element={<Dashboard />} />
+        <Route path="/callback" element={<Callback />} /> {/* Add Callback Route */}
       </Routes>
     </CoinContextProvider>
   </Router>

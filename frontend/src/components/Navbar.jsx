@@ -1,10 +1,11 @@
-// frontend/src/components/Navbar.jsx
 import { useState } from "react";
 import { close, logo, menu } from "../assets";
 import { navLinks } from "../constants";
 import { Link } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const Navbar = () => {
+  const { logout, isAuthenticated } = useAuth0();
   const [active, setActive] = useState("Home");
   const [toggle, setToggle] = useState(false);
   const [dropdown, setDropdown] = useState(false);
@@ -42,13 +43,20 @@ const Navbar = () => {
                 )}
               </>
             ) : (
-              <Link to={`#${nav.id}`}>{nav.title}</Link>
+              <Link to={nav.id === "home" ? "/" : `#${nav.id}`}>{nav.title}</Link>
             )}
           </li>
         ))}
+        {isAuthenticated && (
+          <li
+            className="font-poppins font-normal cursor-pointer text-[16px] text-dimWhite mr-10"
+            onClick={() => logout({ returnTo: window.location.origin })}
+          >
+            Logout
+          </li>
+        )}
       </ul>
 
-      {/* Mobile Menu */}
       <div className="sm:hidden flex flex-1 justify-end items-center">
         <img
           src={toggle ? close : menu}
@@ -65,35 +73,26 @@ const Navbar = () => {
             {navLinks.map((nav, index) => (
               <li
                 key={nav.id}
-                className={`relative font-poppins font-medium cursor-pointer text-[16px] ${
+                className={`font-poppins font-medium cursor-pointer text-[16px] ${
                   active === nav.title ? "text-white" : "text-dimWhite"
                 } ${index === navLinks.length - 1 ? "mb-0" : "mb-4"}`}
                 onClick={() => setActive(nav.title)}
-                onMouseEnter={() => nav.id === "Options" && setDropdown(true)}
-                onMouseLeave={() => nav.id === "Options" && setDropdown(false)}
               >
                 {nav.id === "Options" ? (
-                  <>
-                    <span>{nav.title}</span>
-                    {dropdown && (
-                      <ul className="mt-2 bg-gray-800 p-2 rounded-lg shadow-lg">
-                        <li className="text-white px-4 py-2 hover:bg-gray-700 cursor-pointer">
-                          <Link to="/dashboard/stocks">Stocks</Link>
-                        </li>
-                        <li className="text-white px-4 py-2 hover:bg-gray-700 cursor-pointer">
-                          <Link to="/dashboard/mutual-funds">Mutual Funds</Link>
-                        </li>
-                        <li className="text-white px-4 py-2 hover:bg-gray-700 cursor-pointer">
-                          <Link to="/dashboard/crypto">Crypto</Link>
-                        </li>
-                      </ul>
-                    )}
-                  </>
+                  <span>{nav.title}</span>
                 ) : (
-                  <Link to={`#${nav.id}`}>{nav.title}</Link>
+                  <Link to={nav.id === "home" ? "/" : `#${nav.id}`}>{nav.title}</Link>
                 )}
               </li>
             ))}
+            {isAuthenticated && (
+              <li
+                className="font-poppins font-medium cursor-pointer text-[16px] text-dimWhite mb-4"
+                onClick={() => logout({ returnTo: window.location.origin })}
+              >
+                Logout
+              </li>
+            )}
           </ul>
         </div>
       </div>
