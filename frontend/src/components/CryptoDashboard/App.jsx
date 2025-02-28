@@ -354,19 +354,25 @@ const CryptoDashboard = () => {
       alert("Please log in to add items to your portfolio!");
       return;
     }
+  
     try {
-      const response = await axios.post("http://localhost:8000/api/add-to-portfolio", {
-        user_id: user.sub,
-        item_type: "crypto",
-        item_id: coin.id,
-        name: coin.name,
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/add-to-portfolio`,
+        {
+          user_id: user.sub,
+          item_type: "crypto",
+          item_id: coin.id,
+          name: coin.name,
+        }
+      );
+  
       alert(response.data.message);
     } catch (err) {
       console.error("Error adding to portfolio:", err);
       alert(err.response?.data?.detail || "Failed to add to portfolio");
     }
   };
+  
 
   const handleAiAnalysis = async () => {
     if (!selectedCoin || Object.keys(coinDetails).length === 0) {

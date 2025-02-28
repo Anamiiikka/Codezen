@@ -27,7 +27,8 @@ const Portfolio = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/get-portfolio/${user.sub}`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/get-portfolio/${user.sub}`);
+
         setPortfolioItems(response.data);
       } catch (err) {
         console.error("Error fetching portfolio:", err);

@@ -1,4 +1,3 @@
-// frontend/src/components/Dashboard/MutualFundDashboard.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
@@ -25,19 +24,18 @@ const MutualFundDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
-  const [timePeriod, setTimePeriod] = useState("1M"); // Default to 1 month
+  const [timePeriod, setTimePeriod] = useState("1M");
 
   const groqClient = new Groq({
     apiKey: import.meta.env.VITE_GROQ_API_KEY,
     dangerouslyAllowBrowser: true,
   });
 
-  // Fetch random funds on initial load
   useEffect(() => {
     const fetchRandomFunds = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${API_URL}/api/schemes?search=`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/schemes?search=`);
         const allFunds = Object.entries(response.data).map(([code, name]) => ({ code, name }));
         const shuffled = allFunds.sort(() => 0.5 - Math.random());
         setRandomFunds(shuffled.slice(0, 5));
@@ -51,7 +49,6 @@ const MutualFundDashboard = () => {
     fetchRandomFunds();
   }, []);
 
-  // Fetch suggestions based on search term
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (searchTerm.length < 2) {
@@ -61,7 +58,7 @@ const MutualFundDashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${API_URL}/api/schemes?search=${searchTerm}`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/schemes?search=${searchTerm}`);
         const schemesArray = Object.entries(response.data).map(([code, name]) => ({
           code,
           name,
@@ -80,7 +77,6 @@ const MutualFundDashboard = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Fetch fund details when a fund is selected
   useEffect(() => {
     const fetchFundDetails = async () => {
       if (!selectedFund) {
@@ -93,13 +89,13 @@ const MutualFundDashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const detailsResponse = await axios.get(`${API_URL}/api/scheme-details/${selectedFund.code}`);
+        const detailsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/scheme-details/${selectedFund.code}`);
         setFundDetails(detailsResponse.data);
 
-        const navResponse = await axios.get(`${API_URL}/api/historical-nav/${selectedFund.code}`);
+        const navResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/historical-nav/${selectedFund.code}`);
         setHistoricalNav(navResponse.data);
 
-        const heatmapResponse = await axios.get(`${API_URL}/api/performance-heatmap/${selectedFund.code}`);
+        const heatmapResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/performance-heatmap/${selectedFund.code}`);
         setHeatmapData(heatmapResponse.data);
       } catch (err) {
         console.error("Error fetching fund details:", err);
@@ -135,7 +131,7 @@ const MutualFundDashboard = () => {
       return;
     }
     try {
-      const response = await axios.post("http://localhost:8000/api/add-to-portfolio", {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/add-to-portfolio`, {
         user_id: user.sub,
         item_type: "mutual_fund",
         item_id: item.code,
