@@ -20,9 +20,12 @@ const MutualFundDashboard = () => {
   const [historicalNav, setHistoricalNav] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
   const [monteCarloData, setMonteCarloData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [riskVolatilityData, setRiskVolatilityData] = useState(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
+  const [aiReport, setAiReport] = useState("");
   const [timePeriod, setTimePeriod] = useState("1M");
 
   const groqClient = new Groq({
@@ -32,7 +35,7 @@ const MutualFundDashboard = () => {
 
   useEffect(() => {
     const fetchRandomFunds = async () => {
-      setLoading(true);
+      setLoadingAnalysis(true);
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/schemes?search=`);
         const allFunds = Object.entries(response.data).map(([code, name]) => ({ code, name }));
@@ -42,7 +45,7 @@ const MutualFundDashboard = () => {
         console.error("Error fetching random funds:", err);
         setError("Failed to load initial funds.");
       } finally {
-        setLoading(false);
+        setLoadingAnalysis(false);
       }
     };
     fetchRandomFunds();
@@ -54,7 +57,7 @@ const MutualFundDashboard = () => {
         setSuggestions([]);
         return;
       }
-      setLoading(true);
+      setLoadingAnalysis(true);
       setError(null);
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/schemes?search=${searchTerm}`);
@@ -68,7 +71,7 @@ const MutualFundDashboard = () => {
         setError("Failed to fetch suggestions.");
         setSuggestions([]);
       } finally {
-        setLoading(false);
+        setLoadingAnalysis(false);
       }
     };
 
@@ -83,10 +86,12 @@ const MutualFundDashboard = () => {
         setHistoricalNav([]);
         setHeatmapData([]);
         setMonteCarloData(null);
+        setRiskVolatilityData(null);
         setAiAnalysis("");
+        setAiReport("");
         return;
       }
-      setLoading(true);
+      setLoadingAnalysis(true);
       setError(null);
       try {
         const detailsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/scheme-details/${selectedFund.code}`);
@@ -100,11 +105,14 @@ const MutualFundDashboard = () => {
 
         const monteCarloResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/monte-carlo-prediction/${selectedFund.code}`);
         setMonteCarloData(monteCarloResponse.data);
+
+        const riskResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/risk-volatility/${selectedFund.code}`);
+        setRiskVolatilityData(riskResponse.data);
       } catch (err) {
         console.error("Error fetching fund details:", err);
-        setError("Failed to fetch fund details.");
+        setError(`Failed to fetch fund details: ${err.message}`);
       } finally {
-        setLoading(false);
+        setLoadingAnalysis(false);
       }
     };
     fetchFundDetails();
@@ -153,7 +161,7 @@ const MutualFundDashboard = () => {
       return;
     }
 
-    setLoading(true);
+    setLoadingAnalysis(true);
     setAiAnalysis("");
 
     const latestNav = historicalNav.length > 0 ? parseFloat(historicalNav[historicalNav.length - 1].nav) : 0;
@@ -195,6 +203,7 @@ const MutualFundDashboard = () => {
     `;
 
     try {
+      console.log("Starting AI DOST generation with data:", summary);
       const chatCompletion = await groqClient.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
         model: "llama-3.3-70b-versatile",
@@ -208,13 +217,92 @@ const MutualFundDashboard = () => {
       let analysis = "";
       for await (const chunk of chatCompletion) {
         analysis += chunk.choices[0]?.delta?.content || "";
-        setAiAnalysis(analysis); // Streamed output updates UI progressively
+        setAiAnalysis(analysis);
       }
+      console.log("AI DOST generation completed:", analysis);
     } catch (err) {
-      console.error("Error generating AI analysis:", err);
-      setAiAnalysis("Oops, something went wrong while generating the analysis!");
+      console.error("Error generating AI analysis:", err.message, err.stack);
+      setAiAnalysis(`Error: ${err.message || "Unknown error occurred while generating the analysis."}`);
     } finally {
-      setLoading(false);
+      setLoadingAnalysis(false);
+    }
+  };
+
+  const handleAiReport = async () => {
+    if (!selectedFund || Object.keys(fundDetails).length === 0) {
+      setAiReport("Please select a fund first!");
+      return;
+    }
+
+    setLoadingReport(true);
+    setAiReport("");
+
+    // Ensure all data is available before proceeding
+    if (!historicalNav.length || !heatmapData.length || !monteCarloData || !riskVolatilityData) {
+      setAiReport("Incomplete data fetched from backend. Please try again.");
+      setLoadingReport(false);
+      return;
+    }
+
+    const latestNav = parseFloat(historicalNav[historicalNav.length - 1].nav);
+    const oneYearAgoNav = historicalNav.length > 252 ? parseFloat(historicalNav[historicalNav.length - 252].nav) : latestNav;
+    const oneYearGrowth = oneYearAgoNav > 0 ? ((latestNav - oneYearAgoNav) / oneYearAgoNav * 100).toFixed(1) : "N/A";
+    const bestMonth = heatmapData.reduce((max, curr) => max.dayChange > curr.dayChange ? max : curr, { month: "N/A", dayChange: 0 });
+    const worstMonth = heatmapData.reduce((min, curr) => min.dayChange < curr.dayChange ? min : curr, { month: "N/A", dayChange: 0 });
+
+    const summary = {
+      fund_name: selectedFund.name,
+      type: `${fundDetails.scheme_type} ${fundDetails.scheme_category}`,
+      latest_nav: latestNav,
+      one_year_growth: oneYearGrowth,
+      best_month: bestMonth.month ? `${bestMonth.month} (+${(bestMonth.dayChange * 100).toFixed(2)}%)` : "N/A",
+      worst_month: worstMonth.month ? `${worstMonth.month} (${(worstMonth.dayChange * 100).toFixed(2)}%)` : "N/A",
+      monte_carlo_prediction: monteCarloData,
+      risk_volatility: riskVolatilityData,
+    };
+
+    const prompt = `
+      Act as a Mutual Fund Expert Advisor. I have data about a mutual fund called '${summary.fund_name}'. Provide a detailed, friendly report for a beginner investor, guiding them on how to proceed with this fund based on this data:
+      - Fund Name: ${summary.fund_name}
+      - Type: ${summary.type}
+      - Latest NAV: ₹${summary.latest_nav.toFixed(2)}
+      - 1-Year Growth: ${summary.one_year_growth}%
+      - Best Month: ${summary.best_month}
+      - Worst Month: ${summary.worst_month}
+      - Monte Carlo Prediction: ${JSON.stringify(summary.monte_carlo_prediction)}
+      - Risk & Volatility: ${JSON.stringify(summary.risk_volatility)}
+      Create a clear, conversational report in a sectioned format with these headings (without repeating the questions or using hashtags):
+      Fund Overview - Briefly explain what this fund is and its investment focus.
+      Performance Summary - Summarize its recent performance and trends.
+      Risk Assessment - Evaluate its risk level using volatility and monthly swings.
+      Future Outlook - Use Monte Carlo data to predict future performance and potential.
+      Action Plan - Provide simple, actionable steps (e.g., invest, hold, diversify) with reasons based on the data.
+      Format each section as plain text with the heading in bold (e.g., **Fund Overview**) followed by a short paragraph. Keep it easy to understand, avoid jargon, and offer expert yet friendly guidance!
+    `;
+
+    try {
+      console.log("Starting AI Report generation with data:", summary);
+      const chatCompletion = await groqClient.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.8,
+        max_completion_tokens: 2048,
+        top_p: 1,
+        stream: true,
+        stop: null,
+      });
+
+      let report = "";
+      for await (const chunk of chatCompletion) {
+        report += chunk.choices[0]?.delta?.content || "";
+        setAiReport(report);
+      }
+      console.log("AI Report generation completed:", report);
+    } catch (err) {
+      console.error("Error generating AI report:", err.message, err.stack);
+      setAiReport(`Error: ${err.message || "Unknown error occurred while generating the report. Please check your API key or network connection."}`);
+    } finally {
+      setLoadingReport(false);
     }
   };
 
@@ -383,29 +471,47 @@ const MutualFundDashboard = () => {
               ))}
             </ul>
           )}
-          <button
-            onClick={handleAiAnalysis}
-            disabled={loading || !selectedFund}
-            className={`mt-4 py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loading || !selectedFund ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"}`}
-          >
-            {loading ? "Generating..." : "AI DOST"}
-          </button>
+          <div className="mt-4 flex gap-4">
+            <button
+              onClick={handleAiAnalysis}
+              disabled={loadingAnalysis || loadingReport || !selectedFund}
+              className={`py-2 px-4 rounded bg-blue-gradient text-primary font-poppins font-medium ${loadingAnalysis || loadingReport || !selectedFund ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-500"}`}
+            >
+              {loadingAnalysis ? "Generating..." : "AI DOST"}
+            </button>
+            <button
+              onClick={handleAiReport}
+              disabled={loadingAnalysis || loadingReport || !selectedFund}
+              className={`py-2 px-4 rounded bg-purple-600 text-white font-poppins font-medium ${loadingAnalysis || loadingReport || !selectedFund ? "opacity-50 cursor-not-allowed" : "hover:bg-purple-700"}`}
+            >
+              {loadingReport ? "Generating..." : "AI Report"}
+            </button>
+          </div>
         </div>
 
         {aiAnalysis && (
           <div className="bg-gray-800 rounded-lg p-6 mb-6 shadow-md text-white">
-            <h3 className="text-xl font-semibold mb-4 text-blue-300">AI DOST</h3>
+            <h3 className="text-xl font-semibold mb-4 text-blue-300">AI DOST Analysis</h3>
             <div
               className="text-gray-200 text-base leading-relaxed"
-              style={{
-                whiteSpace: "pre-line", // Preserves line breaks from AI response
-              }}
-              dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\*/g, "") }} // Remove asterisks and render as HTML
+              style={{ whiteSpace: "pre-line" }}
+              dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\*/g, "") }}
             />
           </div>
         )}
 
-        {loading && !aiAnalysis ? (
+        {aiReport && (
+          <div className="bg-gray-900 rounded-lg p-6 mb-6 shadow-lg border border-purple-500">
+            <h3 className="text-2xl font-bold mb-6 text-purple-300 tracking-wide">AI Investment Report</h3>
+            <div
+              className="text-gray-100 text-lg leading-loose font-light"
+              style={{ whiteSpace: "pre-line" }}
+              dangerouslySetInnerHTML={{ __html: aiReport.replace(/\*/g, "").replace(/\n\n/g, "<br/><br/>") }}
+            />
+          </div>
+        )}
+
+        {(loadingAnalysis || loadingReport) && !aiAnalysis && !aiReport ? (
           <p className="text-white text-center">Loading...</p>
         ) : error ? (
           <p className="text-red-500 text-center">{error}</p>
