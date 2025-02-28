@@ -29,10 +29,12 @@ db = client["codezen"]
 users_collection = db["users"]
 portfolio_collection = db["portfolio"]  # New collection for portfolio
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,7 +47,7 @@ async def add_cors_headers(request, call_next):
     except Exception as e:
         logger.error(f"Unhandled exception in request {request.url}: {str(e)}")
         response = JSONResponse(status_code=500, content={"detail": str(e)})
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
