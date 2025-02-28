@@ -1,4 +1,3 @@
-// frontend/src/EducationHub/App.jsx
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import styles from "../style"; // Import app-wide styles
@@ -43,7 +42,6 @@ const EducationHub = () => {
   const [videos, setVideos] = useState(initialVideos);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [blogQuery, setBlogQuery] = useState("");
   const [blogs, setBlogs] = useState([]);
   const [blogLoading, setBlogLoading] = useState(false);
   const [blogError, setBlogError] = useState("");
@@ -88,7 +86,7 @@ const EducationHub = () => {
     setBlogLoading(true);
     setBlogError("");
     try {
-      const searchTerm = blogQuery || "finance investment";
+      const searchTerm = "finance investment"; // Default search term since no user input
       const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(
         searchTerm
       )}&language=en&sortBy=relevancy&apiKey=${NEWS_API_KEY}&pageSize=6`;
@@ -114,10 +112,6 @@ const EducationHub = () => {
   useEffect(() => {
     fetchBlogs();
   }, []);
-
-  const handleBlogSearch = () => {
-    fetchBlogs();
-  };
 
   return (
     <div className={`${styles.paddingX} ${styles.paddingY}`}>
@@ -195,29 +189,6 @@ const EducationHub = () => {
         >
           Financial Blogs
         </motion.h2>
-
-        <motion.div
-          className={`${styles.flexCenter} flex-col sm:flex-row gap-4 mb-8`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.6, duration: 0.8 }}
-        >
-          <input
-            type="text"
-            value={blogQuery}
-            onChange={(e) => setBlogQuery(e.target.value)}
-            placeholder="Search financial blog topics..."
-            className="p-3 w-full sm:w-3/4 rounded bg-dimBlue text-white focus:outline-none font-poppins"
-          />
-          <motion.button
-            onClick={handleBlogSearch}
-            className="py-3 px-6 font-poppins font-medium text-[18px] text-primary bg-blue-gradient rounded-[10px] outline-none"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Search
-          </motion.button>
-        </motion.div>
 
         {blogLoading && <p className={`${styles.paragraph} text-center`}>Loading blogs...</p>}
         {blogError && <p className={`${styles.paragraph} text-center text-red-500`}>{blogError}</p>}
