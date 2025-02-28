@@ -4,6 +4,8 @@ import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import styles from "../../style";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const MonteCarloPrediction = ({ selectedScheme }) => {
   const [monteCarloData, setMonteCarloData] = useState([]);
   const [historicalData, setHistoricalData] = useState([]);
@@ -24,14 +26,14 @@ const MonteCarloPrediction = ({ selectedScheme }) => {
       setLoading(true);
       setError(null);
       try {
-        const navResponse = await axios.get(`http://localhost:8000/api/historical-nav/${selectedScheme.code}`);
+        const navResponse = await axios.get(`${API_URL}/api/historical-nav/${selectedScheme.code}`);
         const navData = navResponse.data.map(item => ({
           ...item,
           date: parseDate(item.date),
         }));
         setHistoricalData(navData);
 
-        const riskResponse = await axios.get(`http://localhost:8000/api/risk-volatility/${selectedScheme.code}`);
+        const riskResponse = await axios.get(`${API_URL}/api/risk-volatility/${selectedScheme.code}`);
         const { annualized_return, annualized_volatility } = riskResponse.data;
         const dailyReturn = annualized_return / 252;
         const dailyVolatility = annualized_volatility / Math.sqrt(252);

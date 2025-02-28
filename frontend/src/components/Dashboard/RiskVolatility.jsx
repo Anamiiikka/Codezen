@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import styles from "../../style";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const RiskVolatility = ({ selectedScheme }) => {
   const [metrics, setMetrics] = useState({});
@@ -20,7 +21,7 @@ const RiskVolatility = ({ selectedScheme }) => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/risk-volatility/${selectedScheme.code}`);
+        const response = await axios.get(`${API_URL}/api/risk-volatility/${selectedScheme.code}`);
         setMetrics({
           annualized_volatility: response.data.annualized_volatility,
           annualized_return: response.data.annualized_return,

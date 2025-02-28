@@ -11,6 +11,8 @@ import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
 import { useAuth0 } from "@auth0/auth0-react";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const MutualFundDashboard = () => {
   const { user, isAuthenticated } = useAuth0();
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,7 +37,7 @@ const MutualFundDashboard = () => {
     const fetchRandomFunds = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("http://localhost:8000/api/schemes?search=");
+        const response = await axios.get(`${API_URL}/api/schemes?search=`);
         const allFunds = Object.entries(response.data).map(([code, name]) => ({ code, name }));
         const shuffled = allFunds.sort(() => 0.5 - Math.random());
         setRandomFunds(shuffled.slice(0, 5));
@@ -59,7 +61,7 @@ const MutualFundDashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/schemes?search=${searchTerm}`);
+        const response = await axios.get(`${API_URL}/api/schemes?search=${searchTerm}`);
         const schemesArray = Object.entries(response.data).map(([code, name]) => ({
           code,
           name,
@@ -91,13 +93,13 @@ const MutualFundDashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const detailsResponse = await axios.get(`http://localhost:8000/api/scheme-details/${selectedFund.code}`);
+        const detailsResponse = await axios.get(`${API_URL}/api/scheme-details/${selectedFund.code}`);
         setFundDetails(detailsResponse.data);
 
-        const navResponse = await axios.get(`http://localhost:8000/api/historical-nav/${selectedFund.code}`);
+        const navResponse = await axios.get(`${API_URL}/api/historical-nav/${selectedFund.code}`);
         setHistoricalNav(navResponse.data);
 
-        const heatmapResponse = await axios.get(`http://localhost:8000/api/performance-heatmap/${selectedFund.code}`);
+        const heatmapResponse = await axios.get(`${API_URL}/api/performance-heatmap/${selectedFund.code}`);
         setHeatmapData(heatmapResponse.data);
       } catch (err) {
         console.error("Error fetching fund details:", err);

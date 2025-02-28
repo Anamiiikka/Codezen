@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import styles from "../../style";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const CalculateReturns = ({ selectedScheme }) => {
   const [investmentAmount, setInvestmentAmount] = useState(10000); // Default ₹10,000
   const [duration, setDuration] = useState(1); // Default 1 year
@@ -12,29 +14,33 @@ const CalculateReturns = ({ selectedScheme }) => {
 
   useEffect(() => {
     const fetchReturnsData = async () => {
-      if (!selectedScheme) {
+      if (!selectedScheme || !selectedScheme.code) {
         setReturnsData(null);
+        setError("No scheme selected.");
         return;
       }
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:8000/api/risk-volatility/${selectedScheme.code}`);
+        // Fetch risk/volatility data to get annualized return
+        const response = await axios.get(`${API_URL}/api/risk-volatility/${selectedScheme.code}`);
         const annualizedReturn = response.data.annualized_return;
+        if (annualizedReturn === undefined) {
+          throw new Error("Annualized return not available in response.");
+        }
         calculateReturns(annualizedReturn);
       } catch (err) {
         console.error("Error fetching returns data:", err);
-        setError("Failed to fetch returns data.");
+        setError("Failed to fetch returns data. Please try again.");
         setReturnsData(null);
       } finally {
         setLoading(false);
       }
     };
     fetchReturnsData();
-  }, [selectedScheme, investmentAmount, duration]);
+  }, [selectedScheme]); // Only depend on selectedScheme
 
   const calculateReturns = (annualizedReturn) => {
-    if (!annualizedReturn) return;
     const rate = annualizedReturn; // Annualized return as a decimal (e.g., 0.12 for 12%)
     const totalValue = investmentAmount * Math.pow(1 + rate, duration);
     const profit = totalValue - investmentAmount;
@@ -48,11 +54,17 @@ const CalculateReturns = ({ selectedScheme }) => {
   const handleAmountChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
     setInvestmentAmount(value);
+    if (returnsData) {
+      calculateReturns(returnsData.annualizedReturn / 100); // Recalculate with new amount
+    }
   };
 
   const handleDurationChange = (e) => {
     const value = parseInt(e.target.value) || 1;
     setDuration(value);
+    if (returnsData) {
+      calculateReturns(returnsData.annualizedReturn / 100); // Recalculate with new duration
+    }
   };
 
   return (

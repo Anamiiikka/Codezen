@@ -31,14 +31,6 @@ const Layout = ({ children }) => (
   </div>
 );
 
-const Callback = () => {
-  const { isLoading, error } = useAuth0();
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-  window.location.replace("/");
-  return null;
-};
-
 const Home = () => (
   <>
     <div className={`bg-primary ${styles.flexStart}`}>
@@ -107,7 +99,7 @@ const App = () => (
             </Layout>
           }
         />
-        <Route path="/callback" element={<Callback />} />
+        {/* Removed <Route path="/callback" element={<Callback />} /> */}
       </Routes>
     </CoinContextProvider>
   </Router>
