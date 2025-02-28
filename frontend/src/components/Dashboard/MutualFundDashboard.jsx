@@ -10,8 +10,6 @@ import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
 import { useAuth0 } from "@auth0/auth0-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 const MutualFundDashboard = () => {
   const { user, isAuthenticated } = useAuth0();
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +19,7 @@ const MutualFundDashboard = () => {
   const [fundDetails, setFundDetails] = useState({});
   const [historicalNav, setHistoricalNav] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
+  const [monteCarloData, setMonteCarloData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
@@ -83,6 +82,7 @@ const MutualFundDashboard = () => {
         setFundDetails({});
         setHistoricalNav([]);
         setHeatmapData([]);
+        setMonteCarloData(null);
         setAiAnalysis("");
         return;
       }
@@ -97,6 +97,9 @@ const MutualFundDashboard = () => {
 
         const heatmapResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/performance-heatmap/${selectedFund.code}`);
         setHeatmapData(heatmapResponse.data);
+
+        const monteCarloResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/monte-carlo-prediction/${selectedFund.code}`);
+        setMonteCarloData(monteCarloResponse.data);
       } catch (err) {
         console.error("Error fetching fund details:", err);
         setError("Failed to fetch fund details.");
@@ -168,6 +171,7 @@ const MutualFundDashboard = () => {
       one_year_growth: oneYearGrowth,
       best_month: bestMonth.month ? `${bestMonth.month} (+${(bestMonth.dayChange * 100).toFixed(2)}%)` : "N/A",
       worst_month: worstMonth.month ? `${worstMonth.month} (${(worstMonth.dayChange * 100).toFixed(2)}%)` : "N/A",
+      monte_carlo_prediction: monteCarloData || "N/A",
     };
 
     const prompt = `
@@ -180,7 +184,14 @@ const MutualFundDashboard = () => {
       - 1-Year Growth: ${summary.one_year_growth}%
       - Best Month: ${summary.best_month}
       - Worst Month: ${summary.worst_month}
-      Explain in a conversational tone what this fund is, how it’s doing, and whether it might be a good fit for a beginner. Keep it short, avoid technical jargon, and make it feel like advice from a friend!
+      - Monte Carlo Prediction: ${JSON.stringify(summary.monte_carlo_prediction)}
+      Give me a clear, conversational breakdown in a point-by-point format—like advice from a friend. Cover these points without repeating the questions:
+      1. What this fund is and what it invests in (based on its type).
+      2. How it’s been doing lately, looking at its growth and NAV changes.
+      3. What the best and worst months tell us about its ups and downs.
+      4. Whether it’s a good pick for a beginner—think about ease, risk, and growth—and why.
+      5. What the Monte Carlo prediction suggests about its future—use the prediction data (expected NAV, probability of positive return, bounds) for a simple outlook.
+      Format each point as a numbered item starting with "1. ", "2. ", etc., and keep it short, avoid complicated terms, and make it feel warm and helpful!
     `;
 
     try {
@@ -197,7 +208,7 @@ const MutualFundDashboard = () => {
       let analysis = "";
       for await (const chunk of chatCompletion) {
         analysis += chunk.choices[0]?.delta?.content || "";
-        setAiAnalysis(analysis);
+        setAiAnalysis(analysis); // Streamed output updates UI progressively
       }
     } catch (err) {
       console.error("Error generating AI analysis:", err);
@@ -382,9 +393,15 @@ const MutualFundDashboard = () => {
         </div>
 
         {aiAnalysis && (
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md text-white">
-            <h3 className="text-lg font-semibold mb-2">AI Analysis</h3>
-            <p className="text-sm">{aiAnalysis}</p>
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 shadow-md text-white">
+            <h3 className="text-xl font-semibold mb-4 text-blue-300">AI DOST</h3>
+            <div
+              className="text-gray-200 text-base leading-relaxed"
+              style={{
+                whiteSpace: "pre-line", // Preserves line breaks from AI response
+              }}
+              dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\*/g, "") }} // Remove asterisks and render as HTML
+            />
           </div>
         )}
 
