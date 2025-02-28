@@ -9,10 +9,7 @@ export const navLinks = [
     id: "features",
     title: "Features",
   },
-  {
-    id: "product",
-    title: "Product",
-  },
+ 
   {
     id: "education",  // Changed from "clients"
     title: "Education",

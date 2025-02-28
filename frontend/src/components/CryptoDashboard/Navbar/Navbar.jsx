@@ -39,7 +39,9 @@ function Navbar() {
         <Link to="/dashboard/crypto">
           <li>Home</li>
         </Link>
+        <Link to="/business">
         <li>Features</li>
+        </Link>
         <li>Pricing</li>
         <li>Blog</li>
       </ul>

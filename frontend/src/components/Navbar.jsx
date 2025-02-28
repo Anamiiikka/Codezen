@@ -1,47 +1,43 @@
-// frontend/src/components/Navbar.jsx
 import { useState } from "react";
 import { close, logo, menu } from "../assets";
 import { navLinks } from "../constants";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
 import { useAuth0 } from "@auth0/auth0-react";
-// import axios from "axios"; // Uncomment if using modal approach
 
 const Navbar = () => {
   const { logout, loginWithRedirect, user, isAuthenticated } = useAuth0();
   const [active, setActive] = useState("Home");
   const [toggle, setToggle] = useState(false);
   const [dropdown, setDropdown] = useState(false);
-  // const [portfolioVisible, setPortfolioVisible] = useState(false); // Uncomment for modal
-  // const [portfolioItems, setPortfolioItems] = useState([]); // Uncomment for modal
+  const navigate = useNavigate(); // Hook for navigation
 
   // Toggle dropdown for "Options"
   const handleDropdownToggle = () => {
     setDropdown((prev) => !prev);
   };
 
-  // Fetch and show portfolio (Modal approach, commented out)
-  /*
-  const handlePortfolioClick = async () => {
-    if (!isAuthenticated) {
-      alert("Please log in to view your portfolio!");
-      loginWithRedirect();
-      return;
-    }
-    try {
-      const response = await axios.get(`http://localhost:8000/api/get-portfolio/${user.sub}`);
-      setPortfolioItems(response.data);
-      setPortfolioVisible(true);
-    } catch (err) {
-      console.error("Error fetching portfolio:", err);
-      alert("Failed to fetch portfolio");
+  // Handle navigation with smooth scrolling for "Features"
+  const handleNavClick = (navId, navTitle) => {
+    setActive(navTitle);
+    if (navId === "features") {
+      // Navigate to home and scroll to features section
+      navigate("/");
+      setTimeout(() => {
+        const element = document.getElementById("features");
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 0); // Delay ensures DOM updates after navigation
+    } else if (navId !== "Options") {
+      // Regular navigation for other links
+      navigate(navId === "home" ? "/" : `/${navId}`);
     }
   };
-  */
 
   return (
     <nav className="w-full flex py-6 justify-between items-center navbar">
-      <Link to="/">
-        <img src={logo} alt="hoobank" className="w-[124px] h-[32px]" />
+      <Link to="/" className="font-poppins font-semibold text-white text-[24px]">
+        Phoenix Arcana🐦‍🔥
       </Link>
 
       <ul className="list-none sm:flex hidden justify-end items-center flex-1">
@@ -52,8 +48,8 @@ const Navbar = () => {
               active === nav.title ? "text-white" : "text-dimWhite"
             } ${index === navLinks.length - 1 ? "mr-10" : "mr-10"}`}
             onClick={() => {
-              setActive(nav.title);
               if (nav.id === "Options") handleDropdownToggle();
+              else handleNavClick(nav.id, nav.title);
             }}
           >
             {nav.id === "Options" ? (
@@ -80,9 +76,7 @@ const Navbar = () => {
                 )}
               </>
             ) : (
-              <Link to={nav.id === "home" ? "/" : `/${nav.id}`}>
-                {nav.title}
-              </Link>
+              <span>{nav.title}</span> // Replaced Link with span for custom behavior
             )}
           </li>
         ))}
@@ -137,8 +131,11 @@ const Navbar = () => {
                   active === nav.title ? "text-white" : "text-dimWhite"
                 } ${index === navLinks.length - 1 ? "mb-4" : "mb-4"}`}
                 onClick={() => {
-                  setActive(nav.title);
                   if (nav.id === "Options") handleDropdownToggle();
+                  else {
+                    handleNavClick(nav.id, nav.title);
+                    setToggle(false); // Close mobile menu after click
+                  }
                 }}
               >
                 {nav.id === "Options" ? (
@@ -147,17 +144,35 @@ const Navbar = () => {
                     {dropdown && (
                       <ul className="mt-2">
                         <li className="text-white py-2">
-                          <Link to="/dashboard/stocks" onClick={() => setDropdown(false)}>
+                          <Link
+                            to="/dashboard/stocks"
+                            onClick={() => {
+                              setDropdown(false);
+                              setToggle(false);
+                            }}
+                          >
                             Stocks
                           </Link>
                         </li>
                         <li className="text-white py-2">
-                          <Link to="/dashboard/mutual-funds" onClick={() => setDropdown(false)}>
+                          <Link
+                            to="/dashboard/mutual-funds"
+                            onClick={() => {
+                              setDropdown(false);
+                              setToggle(false);
+                            }}
+                          >
                             Mutual Funds
                           </Link>
                         </li>
                         <li className="text-white py-2">
-                          <Link to="/dashboard/crypto" onClick={() => setDropdown(false)}>
+                          <Link
+                            to="/dashboard/crypto"
+                            onClick={() => {
+                              setDropdown(false);
+                              setToggle(false);
+                            }}
+                          >
                             Crypto
                           </Link>
                         </li>
@@ -165,9 +180,7 @@ const Navbar = () => {
                     )}
                   </>
                 ) : (
-                  <Link to={nav.id === "home" ? "/" : `/${nav.id}`}>
-                    {nav.title}
-                  </Link>
+                  <span>{nav.title}</span> // Replaced Link with span
                 )}
               </li>
             ))}
@@ -175,7 +188,10 @@ const Navbar = () => {
               className={`font-poppins font-medium cursor-pointer text-[16px] ${
                 active === "Portfolio" ? "text-white" : "text-dimWhite"
               } mb-4`}
-              onClick={() => setActive("Portfolio")}
+              onClick={() => {
+                setActive("Portfolio");
+                setToggle(false); // Close mobile menu
+              }}
             >
               <Link to="/dashboard/portfolio">Portfolio</Link>
             </li>
