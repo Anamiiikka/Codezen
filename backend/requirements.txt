@@ -3,3 +3,5 @@ uvicorn
 mftool
 pandas
 numpy
+python-dotenv
+pymongo

@@ -1,14 +1,30 @@
 import styles from "../style";
 import { arrowUp } from "../assets";
 import { useAuth0 } from "@auth0/auth0-react";
+import { useEffect } from "react";
+import axios from "axios";
 
 const GetStarted = () => {
   const { loginWithRedirect, isAuthenticated, user } = useAuth0();
 
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Send user data to backend
+      axios
+        .post("http://localhost:8000/api/save-user", user)
+        .then((response) => {
+          console.log("User saved:", response.data);
+        })
+        .catch((error) => {
+          console.error("Error saving user:", error);
+        });
+    }
+  }, [isAuthenticated, user]);
+
   return (
     <div
       className={`${styles.flexCenter} w-[140px] h-[140px] rounded-full bg-blue-gradient p-[2px] cursor-pointer`}
-      onClick={!isAuthenticated ? () => loginWithRedirect() : null} // Trigger login if not authenticated
+      onClick={!isAuthenticated ? () => loginWithRedirect() : null}
     >
       <div className={`${styles.flexCenter} flex-col bg-primary w-[100%] h-[100%] rounded-full`}>
         {isAuthenticated && user ? (
