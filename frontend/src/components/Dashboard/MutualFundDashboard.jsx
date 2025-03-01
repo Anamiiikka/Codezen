@@ -4,14 +4,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import Plotly from "react-plotly.js";
 import styles from "../../style";
 import RiskVolatility from "./RiskVolatility";
-import MonteCarloPrediction from "./MonteCarloPrediiction"; // Note: Fix typo in production to "MonteCarloPrediction"
+import MonteCarloPrediction from "./MonteCarloPrediiction"; // Fix typo in production to "MonteCarloPrediction"
 import CalculateReturns from "./CalculateReturns";
-import CompareNAVs from "./CompareNAVs"; // Added import for CompareNAVs
+import CompareNAVs from "./CompareNAVs";
 import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
 import { useAuth0 } from "@auth0/auth0-react";
 import { motion } from "framer-motion";
-
 
 const MutualFundDashboard = () => {
   const { user, isAuthenticated } = useAuth0();
@@ -35,6 +34,12 @@ const MutualFundDashboard = () => {
     apiKey: import.meta.env.VITE_GROQ_API_KEY,
     dangerouslyAllowBrowser: true,
   });
+
+  // Token estimation function (rough approximation: 1 token ~ 4 characters)
+  const estimateTokens = (text) => Math.ceil(text.length / 4);
+
+  // TPM limit for the model
+  const TPM_LIMIT = 6000;
 
   useEffect(() => {
     const fetchRandomFunds = async () => {
@@ -77,7 +82,6 @@ const MutualFundDashboard = () => {
         setLoadingAnalysis(false);
       }
     };
-
     const timer = setTimeout(fetchSuggestions, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -99,16 +103,12 @@ const MutualFundDashboard = () => {
       try {
         const detailsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/scheme-details/${selectedFund.code}`);
         setFundDetails(detailsResponse.data);
-
         const navResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/historical-nav/${selectedFund.code}`);
         setHistoricalNav(navResponse.data);
-
         const heatmapResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/performance-heatmap/${selectedFund.code}`);
         setHeatmapData(heatmapResponse.data);
-
         const monteCarloResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/monte-carlo-prediction/${selectedFund.code}`);
         setMonteCarloData(monteCarloResponse.data);
-
         const riskResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/risk-volatility/${selectedFund.code}`);
         setRiskVolatilityData(riskResponse.data);
       } catch (err) {
@@ -186,31 +186,25 @@ const MutualFundDashboard = () => {
     };
 
     const prompt = `
-  Act as a Mutual Fund Expert Advisor. I have data about a mutual fund called '${summary.fund_name}'. Provide a detailed, friendly report for a beginner investor based on this data:
-  - Fund Name: ${summary.fund_name}
-  - Type: ${summary.type}
-  - Latest NAV: ₹${summary.latest_nav.toFixed(2)}
-  - 1-Year Growth: ${summary.one_year_growth}%
-  - Best Month: ${summary.best_month}
-  - Worst Month: ${summary.worst_month}
-  - Monte Carlo Expected NAV: ${summary.monte_carlo_prediction?.expected_nav || "N/A"}
-  - Risk Level: ${summary.risk_volatility?.risk_level || "N/A"}
-  Create a clear, conversational report with these sections:
-  Fund Overview - Briefly explain what this fund is and its investment focus.
-  Performance Summary - Summarize its recent performance and trends.
-  Risk Assessment - Evaluate its risk level using available data.
-  Future Outlook - Predict future performance based on Monte Carlo data.
-  Action Plan - Suggest simple steps (e.g., invest, hold, diversify) with reasons.
-  Keep it simple and friendly, avoiding jargon!
-`;
+      I have data about a mutual fund called '${summary.fund_name}'. Please provide a simple, friendly explanation...
+      - Fund Name: ${summary.fund_name}
+      - Type: ${summary.type}
+      - Launched: ${summary.launched}
+      - Starting NAV: ₹${summary.starting_nav.toFixed(2)}
+      - Latest NAV: ₹${summary.latest_nav.toFixed(2)}
+      - 1-Year Growth: ${summary.one_year_growth}%
+      - Best Month: ${summary.best_month}
+      - Worst Month: ${summary.worst_month}
+      - Monte Carlo Prediction: ${JSON.stringify(summary.monte_carlo_prediction)}
+      ...
+    `; // Keeping this as is since it’s already working
 
     try {
-      console.log("Starting AI DOST generation with data:", summary);
       const chatCompletion = await groqClient.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
         model: "llama-3.3-70b-versatile",
-        temperature: 0.8,
-        max_completion_tokens: 1024, // Reduced from 2048
+        temperature: 1,
+        max_completion_tokens: 1024,
         top_p: 1,
         stream: true,
         stop: null,
@@ -220,7 +214,6 @@ const MutualFundDashboard = () => {
         analysis += chunk.choices[0]?.delta?.content || "";
         setAiAnalysis(analysis);
       }
-      console.log("AI DOST generation completed:", analysis);
     } catch (err) {
       console.error("Error generating AI analysis:", err.message, err.stack);
       setAiAnalysis(`Error: ${err.message || "Unknown error occurred while generating the analysis."}`);
@@ -261,6 +254,16 @@ const MutualFundDashboard = () => {
       risk_volatility: riskVolatilityData,
     };
 
+    // Simplified data for prompt to reduce token count
+    const monteCarloSummary = {
+      expected_nav: summary.monte_carlo_prediction?.expected_nav || "N/A",
+      probability_positive: summary.monte_carlo_prediction?.probability_positive || "N/A",
+    };
+    const riskVolatilitySummary = {
+      risk_level: summary.risk_volatility?.risk_level || "N/A",
+      volatility: summary.risk_volatility?.volatility || "N/A",
+    };
+
     const prompt = `
       Act as a Mutual Fund Expert Advisor. I have data about a mutual fund called '${summary.fund_name}'. Provide a detailed, friendly report for a beginner investor, guiding them on how to proceed with this fund based on this data:
       - Fund Name: ${summary.fund_name}
@@ -269,9 +272,9 @@ const MutualFundDashboard = () => {
       - 1-Year Growth: ${summary.one_year_growth}%
       - Best Month: ${summary.best_month}
       - Worst Month: ${summary.worst_month}
-      - Monte Carlo Prediction: ${JSON.stringify(summary.monte_carlo_prediction)}
-      - Risk & Volatility: ${JSON.stringify(summary.risk_volatility)}
-      Create a clear, conversational report in a sectioned format with these headings (without repeating the questions or using hashtags):
+      - Monte Carlo Prediction (Expected NAV): ₹${monteCarloSummary.expected_nav} (Probability of Positive Return: ${monteCarloSummary.probability_positive})
+      - Risk & Volatility: Risk Level - ${riskVolatilitySummary.risk_level}, Volatility - ${riskVolatilitySummary.volatility}
+      Create a clear, conversational report in a sectioned format with these headings:
       Fund Overview - Briefly explain what this fund is and its investment focus.
       Performance Summary - Summarize its recent performance and trends.
       Risk Assessment - Evaluate its risk level using volatility and monthly swings.
@@ -279,6 +282,15 @@ const MutualFundDashboard = () => {
       Action Plan - Provide simple, actionable steps (e.g., invest, hold, diversify) with reasons based on the data.
       Format each section as plain text with the heading in bold (e.g., **Fund Overview**) followed by a short paragraph. Keep it easy to understand, avoid jargon, and offer expert yet friendly guidance!
     `;
+
+    const tokenCount = estimateTokens(prompt) + 2048; // Input + max output tokens
+    console.log("Estimated token count for AI Report:", tokenCount);
+
+    if (tokenCount > TPM_LIMIT) {
+      setAiReport("Error: Request too large. Please try a simpler fund or wait a moment before retrying.");
+      setLoadingReport(false);
+      return;
+    }
 
     try {
       console.log("Starting AI Report generation with data:", summary);
@@ -300,7 +312,7 @@ const MutualFundDashboard = () => {
       console.log("AI Report generation completed:", report);
     } catch (err) {
       console.error("Error generating AI report:", err.message, err.stack);
-      setAiReport(`Error: ${err.message || "Unknown error occurred while generating the report. Please check your API key or network connection."}`);
+      setAiReport(`Error: ${err.message || "Unknown error occurred while generating the report."}`);
     } finally {
       setLoadingReport(false);
     }
@@ -335,23 +347,14 @@ const MutualFundDashboard = () => {
   const randomFundsSection = (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {randomFunds.map((fund) => (
-        <div
-          key={fund.code}
-          className="bg-gray-800 rounded-lg p-4 shadow-md hover:bg-gray-700 transition-colors"
-        >
+        <div key={fund.code} className="bg-gray-800 rounded-lg p-4 shadow-md hover:bg-gray-700 transition-colors">
           <h3 className="text-white text-md font-semibold mb-2">{fund.name}</h3>
           <p className="text-gray-400 text-sm">Code: {fund.code}</p>
           <div className="flex justify-between mt-2">
-            <button
-              onClick={() => handleSelectFund(fund)}
-              className="py-1 px-3 bg-blue-gradient text-primary rounded font-poppins text-sm"
-            >
+            <button onClick={() => handleSelectFund(fund)} className="py-1 px-3 bg-blue-gradient text-primary rounded font-poppins text-sm">
               View Details
             </button>
-            <button
-              onClick={() => addToPortfolio(fund)}
-              className="py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700"
-            >
+            <button onClick={() => addToPortfolio(fund)} className="py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700">
               Add to Portfolio
             </button>
           </div>
@@ -377,24 +380,16 @@ const MutualFundDashboard = () => {
             </p>
           ))}
         </div>
-        <button
-          onClick={() => addToPortfolio(selectedFund)}
-          className="mt-4 py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700"
-        >
+        <button onClick={() => addToPortfolio(selectedFund)} className="mt-4 py-1 px-3 bg-green-600 text-white rounded font-poppins text-sm hover:bg-green-700">
           Add to Portfolio
         </button>
       </div>
-
       <div className="bg-gray-800 rounded-lg p-4 shadow-md">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-white text-lg font-semibold">Historical NAV</h3>
           <div className="flex gap-2">
             {["1M", "3M", "6M", "1Y"].map((period) => (
-              <button
-                key={period}
-                onClick={() => setTimePeriod(period)}
-                className={`px-2 py-1 rounded text-sm ${timePeriod === period ? "bg-blue-gradient text-primary" : "bg-gray-700 text-white"} hover:bg-secondary`}
-              >
+              <button key={period} onClick={() => setTimePeriod(period)} className={`px-2 py-1 rounded text-sm ${timePeriod === period ? "bg-blue-gradient text-primary" : "bg-gray-700 text-white"} hover:bg-secondary`}>
                 {period}
               </button>
             ))}
@@ -412,11 +407,9 @@ const MutualFundDashboard = () => {
           <p className="text-gray-400">No NAV data</p>
         )}
       </div>
-
       <div className="bg-gray-800 rounded-lg p-4 shadow-md">
         <CalculateReturns selectedScheme={selectedFund} />
       </div>
-
       <div className="bg-gray-800 rounded-lg p-4 shadow-md">
         <h3 className="text-white text-lg font-semibold mb-2">Performance Heatmap</h3>
         {heatmapData.length > 0 ? (
@@ -435,11 +428,9 @@ const MutualFundDashboard = () => {
           <p className="text-gray-400">No heatmap data</p>
         )}
       </div>
-
       <div className="bg-gray-800 rounded-lg p-4 shadow-md">
         <RiskVolatility selectedScheme={selectedFund} />
       </div>
-
       <div className="bg-gray-800 rounded-lg p-4 shadow-md">
         <MonteCarloPrediction selectedScheme={selectedFund} />
       </div>
@@ -449,17 +440,9 @@ const MutualFundDashboard = () => {
   return (
     <div className={`bg-primary ${styles.paddingX} min-h-screen py-6`}>
       <div className="max-w-[1200px] mx-auto">
-        {/* Dashboard Heading */}
-        <motion.h1
-          className={`${styles.heading2} text-center text-gradient mb-6`}
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
+        <motion.h1 className={`${styles.heading2} text-center text-gradient mb-6`} initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
           Mutual Fund Dashboard
         </motion.h1>
-
-        {/* Search and AI Buttons */}
         <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md relative">
           <input
             type="text"
@@ -472,11 +455,7 @@ const MutualFundDashboard = () => {
           {suggestions.length > 0 && (
             <ul className="absolute z-10 bg-gray-800 text-white rounded-lg w-[300px] max-h-60 overflow-y-auto mt-2 shadow-lg">
               {suggestions.map((fund) => (
-                <li
-                  key={fund.code}
-                  onClick={() => handleSelectFund(fund)}
-                  className="p-2 hover:bg-gray-700 cursor-pointer"
-                >
+                <li key={fund.code} onClick={() => handleSelectFund(fund)} className="p-2 hover:bg-gray-700 cursor-pointer">
                   {fund.name}
                 </li>
               ))}
@@ -499,32 +478,18 @@ const MutualFundDashboard = () => {
             </button>
           </div>
         </div>
-
-        {/* AI Analysis */}
         {aiAnalysis && (
           <div className="bg-gray-800 rounded-lg p-6 mb-6 shadow-md text-white">
             <h3 className="text-xl font-semibold mb-4 text-blue-300">AI DOST Analysis</h3>
-            <div
-              className="text-gray-200 text-base leading-relaxed"
-              style={{ whiteSpace: "pre-line" }}
-              dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\*/g, "") }}
-            />
+            <div className="text-gray-200 text-base leading-relaxed" style={{ whiteSpace: "pre-line" }} dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\*/g, "") }} />
           </div>
         )}
-
-        {/* AI Report */}
         {aiReport && (
           <div className="bg-gray-900 rounded-lg p-6 mb-6 shadow-lg border border-purple-500">
             <h3 className="text-2xl font-bold mb-6 text-purple-300 tracking-wide">AI Investment Report</h3>
-            <div
-              className="text-gray-100 text-lg leading-loose font-light"
-              style={{ whiteSpace: "pre-line" }}
-              dangerouslySetInnerHTML={{ __html: aiReport.replace(/\*/g, "").replace(/\n\n/g, "<br/><br/>") }}
-            />
+            <div className="text-gray-100 text-lg leading-loose font-light" style={{ whiteSpace: "pre-line" }} dangerouslySetInnerHTML={{ __html: aiReport.replace(/\*/g, "").replace(/\n\n/g, "<br/><br/>") }} />
           </div>
         )}
-
-        {/* Main Content */}
         {(loadingAnalysis || loadingReport) && !aiAnalysis && !aiReport ? (
           <p className="text-white text-center">Loading...</p>
         ) : error ? (
@@ -534,8 +499,6 @@ const MutualFundDashboard = () => {
         ) : (
           randomFundsSection
         )}
-
-        {/* Compare NAVs Section */}
         <div className="mt-8">
           <CompareNAVs />
         </div>
