@@ -4,12 +4,14 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import Plotly from "react-plotly.js";
 import styles from "../../style";
 import RiskVolatility from "./RiskVolatility";
-import MonteCarloPrediction from "./MonteCarloPrediiction";
+import MonteCarloPrediction from "./MonteCarloPrediiction"; // Note: Fix typo in production to "MonteCarloPrediction"
 import CalculateReturns from "./CalculateReturns";
+import CompareNAVs from "./CompareNAVs"; // Added import for CompareNAVs
 import Chatbot from "../Chatbot";
 import Groq from "groq-sdk";
 import { useAuth0 } from "@auth0/auth0-react";
-import { motion } from "framer-motion"; // Added for animation
+import { motion } from "framer-motion";
+
 
 const MutualFundDashboard = () => {
   const { user, isAuthenticated } = useAuth0();
@@ -238,7 +240,6 @@ const MutualFundDashboard = () => {
     setLoadingReport(true);
     setAiReport("");
 
-    // Ensure all data is available before proceeding
     if (!historicalNav.length || !heatmapData.length || !monteCarloData || !riskVolatilityData) {
       setAiReport("Incomplete data fetched from backend. Please try again.");
       setLoadingReport(false);
@@ -450,7 +451,7 @@ const MutualFundDashboard = () => {
   return (
     <div className={`bg-primary ${styles.paddingX} min-h-screen py-6`}>
       <div className="max-w-[1200px] mx-auto">
-        {/* Added Heading */}
+        {/* Dashboard Heading */}
         <motion.h1
           className={`${styles.heading2} text-center text-gradient mb-6`}
           initial={{ opacity: 0, y: -50 }}
@@ -459,6 +460,8 @@ const MutualFundDashboard = () => {
         >
           Mutual Fund Dashboard
         </motion.h1>
+
+        {/* Search and AI Buttons */}
         <div className="bg-gray-800 rounded-lg p-4 mb-6 shadow-md relative">
           <input
             type="text"
@@ -499,6 +502,7 @@ const MutualFundDashboard = () => {
           </div>
         </div>
 
+        {/* AI Analysis */}
         {aiAnalysis && (
           <div className="bg-gray-800 rounded-lg p-6 mb-6 shadow-md text-white">
             <h3 className="text-xl font-semibold mb-4 text-blue-300">AI DOST Analysis</h3>
@@ -510,6 +514,7 @@ const MutualFundDashboard = () => {
           </div>
         )}
 
+        {/* AI Report */}
         {aiReport && (
           <div className="bg-gray-900 rounded-lg p-6 mb-6 shadow-lg border border-purple-500">
             <h3 className="text-2xl font-bold mb-6 text-purple-300 tracking-wide">AI Investment Report</h3>
@@ -521,6 +526,7 @@ const MutualFundDashboard = () => {
           </div>
         )}
 
+        {/* Main Content */}
         {(loadingAnalysis || loadingReport) && !aiAnalysis && !aiReport ? (
           <p className="text-white text-center">Loading...</p>
         ) : error ? (
@@ -530,6 +536,11 @@ const MutualFundDashboard = () => {
         ) : (
           randomFundsSection
         )}
+
+        {/* Compare NAVs Section */}
+        <div className="mt-8">
+          <CompareNAVs />
+        </div>
       </div>
       <Chatbot selectedFund={selectedFund} />
     </div>
