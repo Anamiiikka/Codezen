@@ -186,37 +186,35 @@ const MutualFundDashboard = () => {
     };
 
     const prompt = `
-      I have data about a mutual fund called '${summary.fund_name}'. Please provide a simple, friendly explanation for someone new to investing based on this data:
-      - Fund Name: ${summary.fund_name}
-      - Type: ${summary.type}
-      - Launched: ${summary.launched}
-      - Starting NAV: ₹${summary.starting_nav.toFixed(2)}
-      - Latest NAV: ₹${summary.latest_nav.toFixed(2)}
-      - 1-Year Growth: ${summary.one_year_growth}%
-      - Best Month: ${summary.best_month}
-      - Worst Month: ${summary.worst_month}
-      - Monte Carlo Prediction: ${JSON.stringify(summary.monte_carlo_prediction)}
-      Give me a clear, conversational breakdown in a point-by-point format—like advice from a friend. Cover these points without repeating the questions:
-      1. What this fund is and what it invests in (based on its type).
-      2. How it’s been doing lately, looking at its growth and NAV changes.
-      3. What the best and worst months tell us about its ups and downs.
-      4. Whether it’s a good pick for a beginner—think about ease, risk, and growth—and why.
-      5. What the Monte Carlo prediction suggests about its future—use the prediction data (expected NAV, probability of positive return, bounds) for a simple outlook.
-      Format each point as a numbered item starting with "1. ", "2. ", etc., and keep it short, avoid complicated terms, and make it feel warm and helpful!
-    `;
+  Act as a Mutual Fund Expert Advisor. I have data about a mutual fund called '${summary.fund_name}'. Provide a detailed, friendly report for a beginner investor based on this data:
+  - Fund Name: ${summary.fund_name}
+  - Type: ${summary.type}
+  - Latest NAV: ₹${summary.latest_nav.toFixed(2)}
+  - 1-Year Growth: ${summary.one_year_growth}%
+  - Best Month: ${summary.best_month}
+  - Worst Month: ${summary.worst_month}
+  - Monte Carlo Expected NAV: ${summary.monte_carlo_prediction?.expected_nav || "N/A"}
+  - Risk Level: ${summary.risk_volatility?.risk_level || "N/A"}
+  Create a clear, conversational report with these sections:
+  Fund Overview - Briefly explain what this fund is and its investment focus.
+  Performance Summary - Summarize its recent performance and trends.
+  Risk Assessment - Evaluate its risk level using available data.
+  Future Outlook - Predict future performance based on Monte Carlo data.
+  Action Plan - Suggest simple steps (e.g., invest, hold, diversify) with reasons.
+  Keep it simple and friendly, avoiding jargon!
+`;
 
     try {
       console.log("Starting AI DOST generation with data:", summary);
       const chatCompletion = await groqClient.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
         model: "llama-3.3-70b-versatile",
-        temperature: 1,
-        max_completion_tokens: 1024,
+        temperature: 0.8,
+        max_completion_tokens: 1024, // Reduced from 2048
         top_p: 1,
         stream: true,
         stop: null,
       });
-
       let analysis = "";
       for await (const chunk of chatCompletion) {
         analysis += chunk.choices[0]?.delta?.content || "";
