@@ -16,7 +16,7 @@ import {
 import MutualFundDashboard from "./components/Dashboard/MutualFundDashboard";
 import CoinContextProvider from "./context/CoinContext";
 import CryptoDashboard from "./components/CryptoDashboard/App";
-import Portfolio from "./components/Dashboard/Portfolio"; // Import the new Portfolio component
+import Portfolio from "./components/Dashboard/Portfolio";
 import { EducationHub } from "./EducationHub";
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -27,7 +27,9 @@ const Layout = ({ children }) => (
         <Navbar />
       </div>
     </div>
-    {children}
+    <div className="w-full">
+      {children}
+    </div>
   </div>
 );
 
@@ -66,7 +68,7 @@ const Dashboard = () => (
       />
       <Route path="/mutual-funds" element={<MutualFundDashboard />} />
       <Route path="/crypto/*" element={<CryptoDashboard />} />
-      <Route path="/portfolio" element={<Portfolio />} /> {/* New Portfolio Route */}
+      <Route path="/portfolio" element={<Portfolio />} />
     </Routes>
   </div>
 );
@@ -99,7 +101,6 @@ const App = () => (
             </Layout>
           }
         />
-        {/* Removed <Route path="/callback" element={<Callback />} /> */}
       </Routes>
     </CoinContextProvider>
   </Router>
