@@ -164,7 +164,8 @@ const Portfolio = () => {
 
       let report = "";
       for await (const chunk of chatCompletion) {
-        report += chunk.choices[0]?.delta?.content || "";
+        const chunkContent = chunk.choices[0]?.delta?.content || "";
+        report += chunkContent.replace(/\*/g, ""); // Remove asterisks during streaming
         setAiReport(report);
       }
       console.log("AI Report generation completed:", report);
