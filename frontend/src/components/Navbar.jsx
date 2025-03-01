@@ -58,9 +58,7 @@ const Navbar = () => {
                 {dropdown && (
                   <ul className="absolute top-full left-0 mt-2 bg-gray-800 p-4 rounded-lg shadow-lg w-[200px] z-10">
                     <li className="text-white px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                      <Link to="/dashboard/stocks" onClick={() => setDropdown(false)}>
-                        Stocks
-                      </Link>
+                      
                     </li>
                     <li className="text-white px-4 py-3 hover:bg-gray-700 cursor-pointer">
                       <Link to="/dashboard/mutual-funds" onClick={() => setDropdown(false)}>
